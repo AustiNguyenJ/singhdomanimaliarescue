@@ -1,10 +1,9 @@
-import Reach from "react";
-
-const HistoryPage = () =>{
-    return(
+import React from "react";
+const HistoryPage = () => {
+    return (
         <div>
             <h1>Your Volunteer History</h1>
-                <table>
+            <table>
                 <thead>
                     <tr>
                         <th>Date</th>
