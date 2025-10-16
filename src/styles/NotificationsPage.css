@@ -97,3 +97,61 @@
 .notifications-empty { 
   color: #666;
  }
+
+ .admin-send-form {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: #fafafa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.admin-send-form h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.notification-input,
+.notification-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notification-input:focus,
+.notification-textarea:focus {
+  border-color: #0077ff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 119, 255, 0.15);
+}
+
+.notification-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.notification-send-btn {
+  background-color: #0077ff;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.notification-send-btn:hover {
+  background-color: #005ecc;
+}
+
+.notification-send-btn:active {
+  transform: scale(0.98);
+}
