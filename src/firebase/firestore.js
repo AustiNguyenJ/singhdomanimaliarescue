@@ -108,49 +108,44 @@ export const getVolunteers = async () => {
 
 
 /* ----------------- Assignments ----------------- */
-export const getAssignments = async () => getData("assignments");
 
 export const getAssignedVolunteers = async (eventId) => {
-  const assignments = await getData("assignments");
-  const volunteers = await getVolunteers(); // only non-admins
-  const ids = assignments
-    .filter(a => a.eventId === eventId && !a.deleted) // skip soft-deleted
-    .map(a => a.volunteerId);
-  return volunteers.filter(v => ids.includes(v.id));
+  const events = await getData("events");
+  const event = events.find(e => e.id === eventId);
+  if (!event || !Array.isArray(event.assignedVolunteers)) return [];
+
+  const volunteers = await getVolunteers();
+  return volunteers.filter(v => event.assignedVolunteers.includes(v.email));
 };
 
-export const isAssigned = async (volunteerId, eventId) => {
-  const assignments = await getData("assignments");
-  return assignments.some(
-    a => a.eventId === eventId && a.volunteerId === volunteerId && !a.deleted
+export const assignVolunteer = async (volunteerEmail, eventId) => {
+  const eventRef = doc(db, "events", eventId);
+  const snapshot = await getDoc(eventRef);
+  const eventData = snapshot.exists() ? snapshot.data() : {};
+
+  const assigned = new Set(eventData.assignedVolunteers || []);
+  assigned.add(volunteerEmail);
+
+  await updateDoc(eventRef, { assignedVolunteers: Array.from(assigned) });
+};
+
+export const unassignVolunteer = async (volunteerEmail, eventId) => {
+  const eventRef = doc(db, "events", eventId);
+  const snapshot = await getDoc(eventRef);
+  const eventData = snapshot.exists() ? snapshot.data() : {};
+
+  const updated = (eventData.assignedVolunteers || []).filter(
+    e => e !== volunteerEmail
   );
-};
 
-export const assignVolunteer = async (volunteerId, eventId) => {
-  const already = await isAssigned(volunteerId, eventId);
-  if (!already) {
-    await addData("assignments", {
-      volunteerId,
-      eventId,
-      createdAt: serverTimestamp(),
-      deleted: false,
-    });
-  }
-};
-
-export const unassignVolunteer = async (volunteerId, eventId) => {
-  const assignments = await getData("assignments");
-  const target = assignments.find(
-    a => a.eventId === eventId && a.volunteerId === volunteerId && !a.deleted
-  );
-  if (target) {
-    await updateDoc(doc(db, "assignments", target.id), { deleted: true }); // soft delete
-  }
+  await updateDoc(eventRef, { assignedVolunteers: updated });
 };
 
 export const countAssigned = async (eventId) => {
-  const assigned = await getAssignedVolunteers(eventId);
-  return assigned.length;
+  const eventRef = doc(db, "events", eventId);
+  const snapshot = await getDoc(eventRef);
+  const data = snapshot.exists() ? snapshot.data() : {};
+  return Array.isArray(data.assignedVolunteers) ? data.assignedVolunteers.length : 0;
 };
 
 /* ----------------- Notifications ----------------- */

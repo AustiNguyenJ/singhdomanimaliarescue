@@ -135,21 +135,22 @@ export default function AdminMatchingForm() {
   }, [selected, volunteers, assigned, includeUnavailable]);
 
   // Assign/unassign handlers (keep UI in sync)
-  const doAssign = async (volId) => {
+  const doAssign = async (volEmail) => {
     if (!selected) return;
-    await assignVolunteer(volId, selected.id);
-    const assignedVols = (await getAssignedVolunteers(selected.id)) || [];
+    await assignVolunteer(volEmail, selected.id);
+    const assignedVols = await getAssignedVolunteers(selected.id);
     setAssigned(assignedVols);
     setAssignedCount(assignedVols.length);
   };
 
-  const doUnassign = async (volId) => {
+  const doUnassign = async (volEmail) => {
     if (!selected) return;
-    await unassignVolunteer(volId, selected.id);
-    const assignedVols = (await getAssignedVolunteers(selected.id)) || [];
+    await unassignVolunteer(volEmail, selected.id);
+    const assignedVols = await getAssignedVolunteers(selected.id);
     setAssigned(assignedVols);
     setAssignedCount(assignedVols.length);
   };
+
 
   // Render
   if (!events.length) {
@@ -313,7 +314,7 @@ export default function AdminMatchingForm() {
                       ) : null}
                     </td>
                     <td className="actions nowrap">
-                      <button className="btn btn-primary" onClick={() => doAssign(vol.id)}>
+                      <button className="btn btn-primary" onClick={() => doAssign(vol.email)}>
                         Assign
                       </button>
                     </td>
@@ -378,7 +379,7 @@ export default function AdminMatchingForm() {
                         )}
                       </td>
                       <td className="actions nowrap">
-                        <button className="btn btn-secondary" onClick={() => doAssign(vol.id)}>
+                        <button className="btn btn-secondary" onClick={() => doAssign(vol.email)}>
                           Assign anyway
                         </button>
                       </td>
