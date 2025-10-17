@@ -23,8 +23,8 @@
   },
   "functions": [
     {
-      "codebase": "default",
       "source": "functions",
+      "codebase": "default",
       "ignore": [
         "node_modules",
         ".git",
@@ -33,7 +33,8 @@
         "*.local"
       ],
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint"
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
   ]
