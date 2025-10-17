@@ -1,0 +1,204 @@
+
+.notifications-container {
+  min-width: 70vw;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header styling */
+.notifications-header {
+  position: relative;      
+  width: 100%;
+  text-align: center;      
+  margin-bottom: 20px;
+}
+
+.notifications-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  display: inline-flex;    
+  align-items: center;
+  gap: 8px;
+}
+
+/* Back link pinned to top-right */
+.back-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  text-decoration: none;
+  color: #2563eb;      
+  font-weight: 600;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+/* Form fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.field label {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+.btn:hover {
+  background: #1d4ed8;
+}
+
+
+.messages-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.messages-list li {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+}
+.msg-subject {
+  font-weight: 700;
+}
+.msg-meta {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.msg-body {
+  white-space: pre-wrap;
+  margin: 6px 0 0;
+}
+.notifications-empty { 
+  color: #666;
+ }
+
+ .admin-send-form {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: #fafafa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.admin-send-form h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.notification-input,
+.notification-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notification-input:focus,
+.notification-textarea:focus {
+  border-color: #0077ff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 119, 255, 0.15);
+}
+
+.notification-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.notification-send-btn {
+  background-color: #0077ff;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.notification-send-btn:hover {
+  background-color: #005ecc;
+}
+
+.notification-send-btn:active {
+  transform: scale(0.98);
+}
+
+/* Unread and Read notifications */
+.message-item {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+  border-left: 4px solid transparent;
+}
+
+.message-item.unread {
+  background: #f8fbff;             /* soft blue wash */
+  border-left-color: #3b82f6;       /* blue accent bar */
+}
+
+.message-item.read {
+  opacity: 0.85;                    /* slightly subdued */
+}
+
+.msg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msg-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #3b82f6;              /* blue unread dot */
+}
+
+.msg-subject-unread {
+  font-weight: 800;                  /* heavier than default 700 */
+}
+
+.mark-read {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  padding: 0;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.mark-read:hover {
+  text-decoration: underline;
+}

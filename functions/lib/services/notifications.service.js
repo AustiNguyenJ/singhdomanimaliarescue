@@ -37,6 +37,28 @@ exports.NotificationsService = {
         });
         return notifications_repo_1.NotificationsRepo.create(newItem);
     },
+
+    // event update notifications
+    async sendUpdate({ subject, body, audience }) {
+        const s = (subject && subject.trim()) ? subject.trim() : "Event Update";
+        return exports.NotificationsService.create({
+            subject: `[Update] ${s}`,
+            body,
+            audience
+        });
+    },
+
+    // event reminder notifications
+    async sendReminder({ subject, body, audience }) {
+        const s = (subject && subject.trim()) ? subject.trim() : "Event Reminder";
+        return exports.NotificationsService.create({
+            subject: `[Reminder] ${s}`,
+            body,
+            audience
+        });
+    },
+
+
     async markRead(id, uid) {
         const updated = await notifications_repo_1.NotificationsRepo.markRead(id, uid);
         if (!updated)
