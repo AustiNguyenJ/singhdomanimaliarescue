@@ -1,54 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import '../styles/admin.css';
+// src/components/EventForm.jsx
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "../styles/admin.css";
 
-//Skills that administrators can mark as required for an event
-const SKILLS = [
-  'Dog walking',
-  'Cat care',
-  'Small animal handling',
-  'Animal grooming',
-  'Cleaning & sanitation',
-  'Feeding',
-  'Laundry & bedding maintenance',
-  'Facility upkeep',
-  'Photography & social media',
-  'Fundraising & donations management',
-  'Administrative / clerical skills',
-  'First aid',
-  'Customer service',
-  'Teamwork'
-];
+import { SKILLS, URGENCY, TIME_OF_DAY } from "../lib/adminData.js";
+import { createEvent } from "../lib/adminStore.js";
 
-//Indicate the importance of the event
-const URGENCY = ['Low', 'Medium', 'High', 'Critical'];
+const maxLen = (s, n) => (s || "").trim().length <= n;
 
-const EventForm = () => {
-  //Store form input values
+export default function EventForm() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
-    name: '',
-    description: '',
-    location: '',
-    skills: [],
-    urgency: '',
-    date: '',
+    name: "",
+    description: "",
+    location: "",
+    skills: [],       // UI field; saved as requiredSkills
+    urgency: "",
+    date: "",
+    timeOfDay: "",    // NEW
   });
 
-  //Store validation errors
   const [errors, setErrors] = useState({});
 
-  //User can immediately start typing in the Event Name field without clicking it
   useEffect(() => {
-    const el = document.getElementById('evt-name');
+    const el = document.getElementById("evt-name");
     if (el) el.focus();
   }, []);
 
-  //Handle text input changes for all fields except skills
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
   };
 
-  //Handle checkbox changes for skills
   const handleSkillChange = (e) => {
     const { value, checked } = e.target;
     setForm((f) => ({
@@ -57,65 +41,70 @@ const EventForm = () => {
     }));
   };
 
-  //Validation logic
   const validate = () => {
     const newErrors = {};
-    if (!form.name.trim()) newErrors.name = 'Event Name is required.';
-    else if (form.name.length > 100) newErrors.name = 'Event Name must be ≤ 100 characters.';
-    if (!form.description.trim()) newErrors.description = 'Event Description is required.';
-    if (!form.location.trim()) newErrors.location = 'Location is required.';
-    if (form.skills.length === 0) newErrors.skills = 'Please select at least one skill.';
-    if (!form.urgency) newErrors.urgency = 'Please choose an urgency.';
-    if (!form.date) newErrors.date = 'Please select a date.';
+    if (!form.name.trim()) newErrors.name = "Event Name is required.";
+    else if (!maxLen(form.name, 100)) newErrors.name = "Event Name must be ≤ 100 characters.";
+    if (!form.description.trim()) newErrors.description = "Event Description is required.";
+    if (!form.location.trim()) newErrors.location = "Location is required.";
+    if (form.skills.length === 0) newErrors.skills = "Please select at least one skill.";
+    if (!form.urgency) newErrors.urgency = "Please choose an urgency.";
+    if (!form.date) newErrors.date = "Please select a date.";
+    if (!form.timeOfDay) newErrors.timeOfDay = "Please select a time of day."; // NEW
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  //create a notification whenever an event is created
+  // Optional notification stub so your Notifications page can display something
   async function createNotificationFromEvent(evt) {
     const notification = {
       id: (window.crypto?.randomUUID?.() || String(Date.now())),
       createdAt: new Date().toISOString(),
-      subject: `${evt.name} (${evt.urgency})`,
-      to: evt.skills.length ? evt.skills.join(', ') : 'All Volunteers',
-      body:
-        `${evt.description}`,
+      subject: `${evt.name} (${evt.urgency}${evt.timeOfDay ? ` • ${evt.timeOfDay}` : ""})`,
+      to: evt.skills.length ? evt.skills.join(", ") : "All Volunteers",
+      body: `${evt.description}`,
     };
-
-    // Placeholder to send notification to backend (stub for now)
-    //localStorage so NotificationsPage.jsx can read them (stub for now)
-    const list = JSON.parse(localStorage.getItem('notifications') || '[]');
+    const list = JSON.parse(localStorage.getItem("notifications") || "[]");
     list.unshift(notification);
-    localStorage.setItem('notifications', JSON.stringify(list));
+    localStorage.setItem("notifications", JSON.stringify(list));
   }
 
-  //Form submission handler
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    console.log('Event payload:', form);
-    alert('Event created!\n\n' + JSON.stringify(form, null, 2));
-    
-    // Create a notification about the new event
-    createNotificationFromEvent(form).catch((err) => {
-      console.error('Failed to create notification:', err);
+    // Save to mock store (so Manage Events + Matching can use it)
+    createEvent({
+      name: form.name.trim(),
+      description: form.description.trim(),
+      location: form.location.trim(),
+      requiredSkills: [...form.skills],
+      urgency: form.urgency,
+      date: form.date,
+      timeOfDay: form.timeOfDay, // NEW
     });
 
-    setForm({ name: '', 
-      description: '', 
-      location: '', 
-      skills: [], 
-      urgency: '', 
-      date: '' });
+    createNotificationFromEvent(form).catch(() => {});
+
+    // Reset & go to Manage Events
+    setForm({
+      name: "",
+      description: "",
+      location: "",
+      skills: [],
+      urgency: "",
+      date: "",
+      timeOfDay: "",
+    });
     setErrors({});
+    navigate("/admin/events/manage");
   };
 
-  //Create the form UI
   return (
-    <div className="admin-page">{/*new*/}
-      <div className="card">{/*new*/}
+    <div className="admin-page">
+      <div className="card">
         <h2 style={{ marginTop: 0 }}>Create Event</h2>
+
         <form onSubmit={handleSubmit} className="event-form" noValidate>
           {/* Event Name */}
           <div className="field">
@@ -218,14 +207,30 @@ const EventForm = () => {
             {errors.date && <div className="error">{errors.date}</div>}
           </div>
 
-          {/* Submit Button */}
-          <div className="actions" style={{ marginTop: '0.75rem' }}>
+          {/* Time of Day */}
+          <div className="field">
+            <label>Time of Day *</label>
+            <div className="pill-grid">
+              {TIME_OF_DAY.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`pill ${form.timeOfDay === t ? "pill-on" : ""}`}
+                  onClick={() => setForm((f) => ({ ...f, timeOfDay: t }))}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            {errors.timeOfDay && <div className="error">{errors.timeOfDay}</div>}
+          </div>
+
+          {/* Submit */}
+          <div className="actions" style={{ marginTop: "0.75rem" }}>
             <button type="submit">Create Event</button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default EventForm;
+}

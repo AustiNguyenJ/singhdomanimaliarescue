@@ -1,78 +1,39 @@
-.dashboard-root {
-    min-height: 80 vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    background: #fff;
-    padding: 2rem 1rem;
-}
-
-.dashboard-section {
-    max-width: 1100px;
-    width: 100%;
-    margin: 0 auto;
+.history-container {
+    max-width: 900px;
+    margin: 2rem auto;
     padding: 2rem;
-    border-radius: 1rem;
-    background: #f8fafc;
-    box-shadow: 0 2px 16px rgba(60, 130, 246, 0.08);
-}
-
-.dashboard-title {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #2563eb;
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-/*grid for volunteer dashboard cards*/
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1.5rem;
-}
-
-/*card styling*/
-.dashboard-card {
     background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    text-align: left;
-    box-shadow: 0 2px 8px rgba(60, 130, 246, 0.05);
-    transition: transform 0.2s ease;
-}
-
-.dashboard-card:hover {
-    transform: translateY(-4px);
-}
-
-.dashboard-card h2 {
-    font-size: 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .history-title {
+    text-align: center;
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 600;
-    color: #2563eb;
-    margin-bottom: 0.75rem;
-}
-
-.dashboard-card p {
-    font-size: 1rem;
-    color: #2563eb;
-    margin-bottom:  1rem;
-}
-
-/*buttons*/
-.dashboard-btn {
-    display: inline-block;
+  }
+  
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .history-table th {
     background: #2563eb;
     color: #fff;
-    padding: 0.6rem 1.2rem;
-    border-radius: 999px;
-    font-weight: bold;
-    font-size: 0.95rem;
-    text-decoration: none;
-    transition: background 0.2s;
-}
-
-.dashboard-btn:hover {
-    background: #1e40af;
-}
+    padding: 0.75rem;
+    text-align: left;
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .history-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .history-table tr:hover {
+    background: #f9fafb;
+  }
+  

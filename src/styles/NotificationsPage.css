@@ -1,6 +1,6 @@
 
 .notifications-container {
-  max-width: 800px;
+  min-width: 70vw;
   margin: 0 auto;
   padding: 20px;
 }
