@@ -13,6 +13,8 @@ import ManageEvents from "./pages/admin/ManageEvents";
 import VolunteerDashboard from "./pages/VolunteerDashboard";
 import HistoryPage from "./pages/HistoryPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import GetInvolvedPage from "./pages/GetInvolvedPage";
+import EventForm from "./components/EventForm";
 
 import { app } from "./firebase/config";
 import { AuthProvider } from "./context/AuthContext"; 

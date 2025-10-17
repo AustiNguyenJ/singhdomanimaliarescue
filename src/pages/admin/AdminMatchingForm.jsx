@@ -11,7 +11,7 @@ import {
   countAssigned,
 } from "../../firebase/firestore.js";
 
-import { TIME_OF_DAY } from "../../firebase/firestore.js";
+import { TIME_OF_DAY } from "../../firebase/adminData.js";
 
 export default function AdminMatchingForm() {
   const [events, setEvents] = useState([]);

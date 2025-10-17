@@ -1,13 +1,24 @@
 import { db } from "./config";
-import { collection, addDoc, getDocs, doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import fs from 'fs';
-import path from 'path';
-import { EVENTS as SEED_EVENTS, VOLUNTEERS as SEED_VOLUNTEERS } from "./adminData.js";
 
 /* ----------------- Generic Firestore Functions ----------------- */
-export const addData = async (collectionName, data) =>
-  await addDoc(collection(db, collectionName), data);
+export const addData = async (collectionName, data) => {
+  const docRef = await addDoc(collection(db, collectionName), { ...data, createdAt: serverTimestamp() });
+  return { id: docRef.id, ...data };
+};
 
 export const getData = async (collectionName) => {
   const snapshot = await getDocs(collection(db, collectionName));
@@ -23,7 +34,7 @@ export const saveUserProfile = async (data) => {
   const userDoc = {
     ...data,
     isAdmin: false,
-    assignedTasks: [0],
+    assignedTasks: [],
     email: user.email || "",
     createdAt: serverTimestamp(),
   };
@@ -40,101 +51,106 @@ export const getUserProfile = async () => {
   return docSnap.exists() ? docSnap.data() : null;
 };
 
-/* ----------------- Local JSON "Admin Store" Functions ----------------- */
-const DATA_PATH = path.resolve(__dirname, './shared/data.json');
+/* ----------------- Events ----------------- */
+export const getEvents = async () => {
+  const events = await getData("events");
+  // fetch assignments and volunteers for each event
+  const assignments = await getData("assignments");
+  const volunteers = await getData("volunteers");
 
-function loadStore() {
-  try {
-    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return null;
+  return events.map(evt => {
+    const assignedIds = assignments.filter(a => a.eventId === evt.id).map(a => a.volunteerId);
+    const assignedVolunteers = volunteers.filter(v => assignedIds.includes(v.id));
+    return { ...evt, assignedVolunteers };
+  });
+};
+
+export const createEvent = async (evt) => {
+  return await addData("events", evt);
+};
+
+export const updateEvent = async (id, patch) => {
+  const docRef = doc(db, "events", id);
+  await updateDoc(docRef, patch);
+};
+
+export const deleteEvent = async (id) => {
+  await Promise.all([
+    // delete event doc
+    doc(db, "events", id).delete?.(), // in case deleteDoc needed
+    // delete related assignments
+    (async () => {
+      const assignments = await getData("assignments");
+      for (const a of assignments.filter(a => a.eventId === id)) {
+        await updateDoc(doc(db, "assignments", a.id), { deleted: true }); // soft delete
+      }
+    })(),
+  ]);
+};
+
+/* ----------------- Volunteers ----------------- */
+export const getVolunteers = async () => getData("volunteers");
+
+/* ----------------- Assignments ----------------- */
+export const getAssignments = async () => getData("assignments");
+
+export const getAssignedVolunteers = async (eventId) => {
+  const assignments = await getData("assignments");
+  const volunteers = await getData("volunteers");
+  const ids = assignments.filter(a => a.eventId === eventId).map(a => a.volunteerId);
+  return volunteers.filter(v => ids.includes(v.id));
+};
+
+export const isAssigned = async (volunteerId, eventId) => {
+  const assignments = await getData("assignments");
+  return assignments.some(a => a.eventId === eventId && a.volunteerId === volunteerId);
+};
+
+export const assignVolunteer = async (volunteerId, eventId) => {
+  const already = await isAssigned(volunteerId, eventId);
+  if (!already) await addData("assignments", { volunteerId, eventId, createdAt: serverTimestamp() });
+};
+
+export const unassignVolunteer = async (volunteerId, eventId) => {
+  const assignments = await getData("assignments");
+  const target = assignments.find(a => a.eventId === eventId && a.volunteerId === volunteerId);
+  if (target) {
+    await updateDoc(doc(db, "assignments", target.id), { deleted: true }); // soft delete
   }
-}
+};
 
-function saveStore(state) {
-  fs.writeFileSync(DATA_PATH, JSON.stringify(state, null, 2), 'utf-8');
-}
+export const countAssigned = async (eventId) => {
+  const assigned = await getAssignedVolunteers(eventId);
+  return assigned.length;
+};
 
-function ensureStore() {
-  let store = loadStore();
-  if (!store) {
-    store = {
-      events: SEED_EVENTS,
-      volunteers: SEED_VOLUNTEERS,
-      assignments: [],
-    };
-    saveStore(store);
-  }
-  return store;
-}
+/* ----------------- Notifications ----------------- */
+export const listNotifications = async () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error("No logged-in user");
 
-/* Events */
-export function getEvents() {
-  return ensureStore().events;
-}
+  const q = query(
+    collection(db, "notifications"),
+    where("audienceRoles", "array-contains", user.role || "volunteer"),
+    orderBy("createdAt", "desc")
+  );
 
-export function createEvent(evt) {
-  const store = ensureStore();
-  const id = "evt-" + Date.now();
-  const newEvt = { id, ...evt };
-  store.events = [newEvt, ...store.events];
-  saveStore(store);
-  return newEvt;
-}
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
 
-export function updateEvent(id, patch) {
-  const store = ensureStore();
-  store.events = store.events.map(e => (e.id === id ? { ...e, ...patch } : e));
-  saveStore(store);
-}
+export const createNotification = async (payload) => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error("No logged-in user");
 
-export function deleteEvent(id) {
-  const store = ensureStore();
-  store.events = store.events.filter(e => e.id !== id);
-  store.assignments = store.assignments.filter(a => a.eventId !== id);
-  saveStore(store);
-}
+  const notif = {
+    ...payload,
+    userEmail: user.email || "anonymous",
+    createdAt: serverTimestamp(),
+    audienceRoles: payload.audience?.roles || ["volunteer"],
+  };
 
-/* Volunteers */
-export function getVolunteers() {
-  return ensureStore().volunteers;
-}
-
-/* Assignments */
-export function getAssignments() {
-  return ensureStore().assignments;
-}
-
-export function isAssigned(volunteerId, eventId) {
-  return ensureStore().assignments.some(a => a.volunteerId === volunteerId && a.eventId === eventId);
-}
-
-export function assignVolunteer(volunteerId, eventId) {
-  const store = ensureStore();
-  if (!isAssigned(volunteerId, eventId)) {
-    store.assignments.push({ volunteerId, eventId });
-    saveStore(store);
-  }
-}
-
-export function unassignVolunteer(volunteerId, eventId) {
-  const store = ensureStore();
-  store.assignments = store.assignments.filter(a => !(a.volunteerId === volunteerId && a.eventId === eventId));
-  saveStore(store);
-}
-
-export function getAssignedVolunteers(eventId) {
-  const store = ensureStore();
-  const ids = store.assignments.filter(a => a.eventId === eventId).map(a => a.volunteerId);
-  return store.volunteers.filter(v => ids.includes(v.id));
-}
-
-export function countAssigned(eventId) {
-  return getAssignedVolunteers(eventId).length;
-}
-
-export function resetStore() {
-  fs.unlinkSync(DATA_PATH);
-  ensureStore();
-}
+  return await addData("notifications", notif);
+};

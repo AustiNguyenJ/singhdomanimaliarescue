@@ -10,7 +10,7 @@ import {
   getAssignedVolunteers,
 } from "../../firebase/firestore.js";
 
-import { SKILLS, URGENCY, TIME_OF_DAY } from "../../firebase/firestore.js";
+import { SKILLS, URGENCY, TIME_OF_DAY } from "../../firebase/adminData.js";
 
 export default function ManageEvents() {
   const [events, setEvents] = useState([]);
