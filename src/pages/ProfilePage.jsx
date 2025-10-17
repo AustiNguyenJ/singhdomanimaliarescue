@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UsaStates } from 'usa-states';
+import { saveUserProfile, getUserProfile } from '../firebase/firestore';
+import { getAuth } from "firebase/auth";
+
 
 const US_STATES = new UsaStates().states;
 
@@ -20,21 +23,75 @@ const ProfilePage = () => {
     zip: '',
     skills: [],
     preferences: '',
-    availability: {}, // { Monday: { Morning: true, Afternoon: false, ... }, ... }
+    availability: {},
   });
+  const [loading, setLoading] = useState(true);
 
-  // Initialize availability if not set
-  React.useEffect(() => {
-    if (Object.keys(form.availability).length === 0) {
-      const initial = {};
-      DAYS.forEach(day => {
-        initial[day] = {};
-        TIMES.forEach(time => {
-          initial[day][time] = false;
+  // Initialize availability and load existing profile
+  useEffect(() => {
+    const initializeForm = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.error("No logged-in user!");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        let data = await getUserProfile();
+
+        // If user document doesn't exist, create with defaults
+        if (!data) {
+          const defaultProfile = {
+            fullName: "",
+            address1: "",
+            address2: "",
+            city: "",
+            state: "",
+            zip: "",
+            skills: [],
+            preferences: "",
+            availability: {},
+            isAdmin: false,
+            assignedTasks: [0],
+            email: user.email || "",
+            createdAt: new Date(),
+          };
+
+          // Initialize empty availability
+          DAYS.forEach(day => {
+            defaultProfile.availability[day] = {};
+            TIMES.forEach(time => {
+              defaultProfile.availability[day][time] = false;
+            });
+          });
+
+          await saveUserProfile(defaultProfile);
+          data = defaultProfile;
+        }
+
+        setForm({
+          fullName: data.fullName || "",
+          address1: data.address1 || "",
+          address2: data.address2 || "",
+          city: data.city || "",
+          state: data.state || "",
+          zip: data.zip || "",
+          skills: data.skills || [],
+          preferences: data.preferences || "",
+          availability: data.availability || {},
         });
-      });
-      setForm(f => ({ ...f, availability: initial }));
-    }
+
+      } catch (err) {
+        console.error("Error initializing profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeForm();
     // eslint-disable-next-line
   }, []);
 
@@ -47,9 +104,7 @@ const ProfilePage = () => {
     const { value, checked } = e.target;
     setForm(f => ({
       ...f,
-      skills: checked
-        ? [...f.skills, value]
-        : f.skills.filter(s => s !== value)
+      skills: checked ? [...f.skills, value] : f.skills.filter(s => s !== value)
     }));
   };
 
@@ -58,20 +113,23 @@ const ProfilePage = () => {
       ...f,
       availability: {
         ...f.availability,
-        [day]: {
-          ...f.availability[day],
-          [time]: !f.availability[day][time]
-        }
+        [day]: { ...f.availability[day], [time]: !f.availability[day][time] }
       }
     }));
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    // Validate required fields here if needed
-    alert('Profile saved!');
-    // Save profile logic here
+    try {
+      await saveUserProfile(form);
+      alert("Profile saved successfully!");
+    } catch (err) {
+      console.error("Error saving profile:", err);
+      alert("Failed to save profile.");
+    }
   };
+
+  if (loading) return <p>Loading profile...</p>;
 
   return (
     <div className="profile-root">
@@ -135,8 +193,8 @@ const ProfilePage = () => {
               className="profile-input"
             >
               <option value="">Select State</option>
-              {US_STATES.map(s => (
-                <option key={s.code} value={s.code}>{s.name}</option>
+              {US_STATES.map((s, idx) => (
+                <option key={idx} value={s.code}>{s.name}</option>
               ))}
             </select>
           </div>
@@ -164,15 +222,8 @@ const ProfilePage = () => {
                     name="skills"
                     value={skill}
                     checked={form.skills.includes(skill)}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setForm(f => ({ ...f, skills: [...f.skills, skill] }));
-                      } else {
-                        setForm(f => ({ ...f, skills: f.skills.filter(s => s !== skill) }));
-                      }
-                    }}
-                  />
-                  {' '}{skill}
+                    onChange={handleSkillChange}
+                  /> {skill}
                 </label>
               ))}
             </div>
@@ -194,9 +245,7 @@ const ProfilePage = () => {
                 <thead>
                   <tr>
                     <th></th>
-                    {TIMES.map(time => (
-                      <th key={time}>{time}</th>
-                    ))}
+                    {TIMES.map(time => <th key={time}>{time}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -218,13 +267,11 @@ const ProfilePage = () => {
               </table>
             </div>
           </div>
-          <button type="submit" className="profile-submit-btn">
-            Save Profile
-          </button>
+          <button type="submit" className="profile-submit-btn">Save Profile</button>
         </form>
       </section>
     </div>
   );
 };
 
-export default ProfilePage
+export default ProfilePage;
