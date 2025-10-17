@@ -26,7 +26,7 @@ export const saveUserProfile = async (data) => {
     createdAt: serverTimestamp(),
   };
 
-  await setDoc(doc(db, "users", user.uid), userDoc, { merge: true });
+  await setDoc(doc(db, "users", user.email), userDoc, { merge: true });
 };
 
 // Fetch a user's profile
@@ -35,6 +35,6 @@ export const getUserProfile = async () => {
   const user = auth.currentUser;
   if (!user) throw new Error("No logged-in user");
 
-  const docSnap = await getDoc(doc(db, "users", user.uid));
+  const docSnap = await getDoc(doc(db, "users", user.email));
   return docSnap.exists() ? docSnap.data() : null;
 };
