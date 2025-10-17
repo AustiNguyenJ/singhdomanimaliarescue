@@ -3,6 +3,7 @@ import { UsaStates } from 'usa-states';
 import { saveUserProfile, getUserProfile } from '../firebase/firestore';
 import { getAuth } from "firebase/auth";
 import { SKILLS } from '../firebase/adminData.js';
+import { Navigate } from 'react-router';
 
 
 const US_STATES = new UsaStates().states;
@@ -135,6 +136,7 @@ const ProfilePage = () => {
     try {
       await saveUserProfile(form);
       alert("Profile saved successfully!");
+      Navigate('/dashboard');
     } catch (err) {
       console.error("Error saving profile:", err);
       alert("Failed to save profile.");
