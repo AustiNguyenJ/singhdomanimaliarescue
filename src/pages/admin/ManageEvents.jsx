@@ -1,4 +1,6 @@
 // src/pages/admin/ManageEvents.jsx
+"use client";
+
 import React, { useEffect, useState } from "react";
 import "../../styles/admin.css";
 
@@ -6,7 +8,6 @@ import {
   getEvents,
   updateEvent,
   deleteEvent,
-  countAssigned,
   getAssignedVolunteers,
 } from "../../firebase/firestore.js";
 
@@ -25,11 +26,27 @@ export default function ManageEvents() {
     timeOfDay: "",
   });
   const [openVolunteersFor, setOpenVolunteersFor] = useState(null);
+  const [assignedVols, setAssignedVols] = useState({}); // { eventId: [vols] }
+  const [assignedCounts, setAssignedCounts] = useState({}); // { eventId: count }
 
+  // Load events on mount
   useEffect(() => {
-    setEvents(getEvents());
+    const loadEvents = async () => {
+      const evts = await getEvents();
+      const filtered = (evts || []).filter(evt => !evt.deleted);
+      setEvents(filtered);
+      // load counts for all events
+      const counts = {};
+      for (const evt of evts || []) {
+        const vols = evt.assignedVolunteers || [];
+        counts[evt.id] = vols.length;
+      }
+      setAssignedCounts(counts);
+    };
+    loadEvents();
   }, []);
 
+  // Edit handlers
   const startEdit = (evt) => {
     setEditId(evt.id);
     setEdit({
@@ -45,20 +62,47 @@ export default function ManageEvents() {
 
   const cancelEdit = () => setEditId(null);
 
-  const saveEdit = () => {
-    updateEvent(editId, { ...edit, requiredSkills: [...edit.requiredSkills] });
-    setEvents(getEvents());
+  const saveEdit = async () => {
+    await updateEvent(editId, { ...edit, requiredSkills: [...edit.requiredSkills] });
+    const evts = await getEvents();
+    const filtered = (evts || []).filter(evt => !evt.deleted);
+    setEvents(filtered);
     setEditId(null);
+
+    // update counts
+    const counts = {};
+    for (const evt of evts || []) {
+      counts[evt.id] = (evt.assignedVolunteers || []).length;
+    }
+    setAssignedCounts(counts);
   };
 
-  const remove = (id) => {
+  const remove = async (id) => {
     if (!confirm("Delete this event?")) return;
-    deleteEvent(id);
-    setEvents(getEvents());
+    await deleteEvent(id);
+    const evts = await getEvents();
+    const filtered = (evts || []).filter(evt => !evt.deleted);
+    setEvents(filtered);
+
+    // update counts
+    setAssignedCounts((prev) => {
+      const newCounts = { ...prev };
+      delete newCounts[id];
+      return newCounts;
+    });
   };
 
-  const toggleVolunteers = (eventId) =>
-    setOpenVolunteersFor((p) => (p === eventId ? null : eventId));
+  // Toggle volunteers list and fetch assigned volunteers
+  const toggleVolunteers = async (eventId) => {
+    if (openVolunteersFor === eventId) {
+      setOpenVolunteersFor(null);
+      return;
+    }
+    const vols = await getAssignedVolunteers(eventId);
+    setAssignedVols((prev) => ({ ...prev, [eventId]: vols }));
+    setAssignedCounts((prev) => ({ ...prev, [eventId]: vols.length }));
+    setOpenVolunteersFor(eventId);
+  };
 
   const handleSkillToggle = (skill) => {
     setEdit((e) => {
@@ -141,9 +185,7 @@ export default function ManageEvents() {
                             >
                               <option value="">Select…</option>
                               {TIME_OF_DAY.map((t) => (
-                                <option key={t} value={t}>
-                                  {t}
-                                </option>
+                                <option key={t} value={t}>{t}</option>
                               ))}
                             </select>
                           ) : (
@@ -161,14 +203,12 @@ export default function ManageEvents() {
                             >
                               <option value="">Select…</option>
                               {URGENCY.map((u) => (
-                                <option key={u} value={u}>
-                                  {u}
-                                </option>
+                                <option key={u} value={u}>{u}</option>
                               ))}
                             </select>
                           ) : (
                             <span className={`badge badge-${(evt.urgency || "low").toLowerCase()}`}>
-                              {evt.urgency}
+                              {evt.urgency || "Low"}
                             </span>
                           )}
                         </td>
@@ -207,9 +247,7 @@ export default function ManageEvents() {
                           ) : (
                             <div className="pill-grid compact readonly">
                               {(evt.requiredSkills || []).map((s) => (
-                                <span key={s} className="pill pill-muted">
-                                  {s}
-                                </span>
+                                <span key={s} className="pill pill-muted">{s}</span>
                               ))}
                             </div>
                           )}
@@ -218,7 +256,7 @@ export default function ManageEvents() {
                         {/* Assigned */}
                         <td className="nowrap">
                           <button className="btn btn-ghost" onClick={() => toggleVolunteers(evt.id)}>
-                            {countAssigned(evt.id)} volunteer(s)
+                            {assignedCounts[evt.id] ?? 0} volunteer(s)
                           </button>
                         </td>
 
@@ -227,21 +265,13 @@ export default function ManageEvents() {
                           <span className="btn-row">
                             {isEditing ? (
                               <>
-                                <button className="btn btn-primary" onClick={saveEdit}>
-                                  Save
-                                </button>
-                                <button className="btn btn-secondary" onClick={cancelEdit}>
-                                  Cancel
-                                </button>
+                                <button className="btn btn-primary" onClick={saveEdit}>Save</button>
+                                <button className="btn btn-secondary" onClick={cancelEdit}>Cancel</button>
                               </>
                             ) : (
                               <>
-                                <button className="btn btn-secondary" onClick={() => startEdit(evt)}>
-                                  Edit
-                                </button>
-                                <button className="btn btn-danger" onClick={() => remove(evt.id)}>
-                                  Delete
-                                </button>
+                                <button className="btn btn-secondary" onClick={() => startEdit(evt)}>Edit</button>
+                                <button className="btn btn-danger" onClick={() => remove(evt.id)}>Delete</button>
                               </>
                             )}
                           </span>
@@ -255,15 +285,12 @@ export default function ManageEvents() {
                               <div className="vol-head">
                                 Assigned volunteers for <strong>{evt.name}</strong>
                               </div>
-                              {getAssignedVolunteers(evt.id).length === 0 ? (
+                              {(!assignedVols[evt.id] || assignedVols[evt.id].length === 0) ? (
                                 <div className="muted">No volunteers assigned.</div>
                               ) : (
                                 <ul className="vol-list">
-                                  {getAssignedVolunteers(evt.id).map((v) => (
-                                    <li key={v.id}>
-                                      <strong>{v.name}</strong>
-                                      <span className="muted"> — {v.skills.join(", ")}</span>
-                                    </li>
+                                  {assignedVols[evt.id].map(v => (
+                                    <li key={v.id}>{v.name}</li>
                                   ))}
                                 </ul>
                               )}

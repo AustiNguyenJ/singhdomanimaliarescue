@@ -75,45 +75,70 @@ export const updateEvent = async (id, patch) => {
 };
 
 export const deleteEvent = async (id) => {
-  await Promise.all([
-    // delete event doc
-    doc(db, "events", id).delete?.(), // in case deleteDoc needed
-    // delete related assignments
-    (async () => {
-      const assignments = await getData("assignments");
-      for (const a of assignments.filter(a => a.eventId === id)) {
-        await updateDoc(doc(db, "assignments", a.id), { deleted: true }); // soft delete
-      }
-    })(),
-  ]);
+  // Soft-delete the event itself
+  const eventRef = doc(db, "events", id);
+  await updateDoc(eventRef, { deleted: true });
+
+  // Soft-delete related assignments
+  const assignments = await getData("assignments");
+  const related = assignments.filter(a => a.eventId === id);
+  for (const a of related) {
+    await updateDoc(doc(db, "assignments", a.id), { deleted: true });
+  }
 };
 
 /* ----------------- Volunteers ----------------- */
-export const getVolunteers = async () => getData("volunteers");
+export const getVolunteers = async () => {
+  const allUsers = await getData("users");
+
+  const volunteers = allUsers
+    .filter(u => u.isAdmin === false)
+    .map(u => ({
+      ...u,
+      availability: Array.isArray(u.availability) ? u.availability : [],
+      preferredTimes: Array.isArray(u.preferredTimes) ? u.preferredTimes : [],
+      skills: Array.isArray(u.skills) ? u.skills : [],
+    }));
+
+  return volunteers;
+};
 
 /* ----------------- Assignments ----------------- */
 export const getAssignments = async () => getData("assignments");
 
 export const getAssignedVolunteers = async (eventId) => {
   const assignments = await getData("assignments");
-  const volunteers = await getData("volunteers");
-  const ids = assignments.filter(a => a.eventId === eventId).map(a => a.volunteerId);
+  const volunteers = await getVolunteers(); // only non-admins
+  const ids = assignments
+    .filter(a => a.eventId === eventId && !a.deleted) // skip soft-deleted
+    .map(a => a.volunteerId);
   return volunteers.filter(v => ids.includes(v.id));
 };
 
 export const isAssigned = async (volunteerId, eventId) => {
   const assignments = await getData("assignments");
-  return assignments.some(a => a.eventId === eventId && a.volunteerId === volunteerId);
+  return assignments.some(
+    a => a.eventId === eventId && a.volunteerId === volunteerId && !a.deleted
+  );
 };
 
 export const assignVolunteer = async (volunteerId, eventId) => {
   const already = await isAssigned(volunteerId, eventId);
-  if (!already) await addData("assignments", { volunteerId, eventId, createdAt: serverTimestamp() });
+  if (!already) {
+    await addData("assignments", {
+      volunteerId,
+      eventId,
+      createdAt: serverTimestamp(),
+      deleted: false,
+    });
+  }
 };
 
 export const unassignVolunteer = async (volunteerId, eventId) => {
   const assignments = await getData("assignments");
-  const target = assignments.find(a => a.eventId === eventId && a.volunteerId === volunteerId);
+  const target = assignments.find(
+    a => a.eventId === eventId && a.volunteerId === volunteerId && !a.deleted
+  );
   if (target) {
     await updateDoc(doc(db, "assignments", target.id), { deleted: true }); // soft delete
   }

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import "../../styles/admin.css";
 
@@ -5,26 +7,33 @@ import {
   getEvents,
   getVolunteers,
   getAssignedVolunteers,
-  isAssigned,
   assignVolunteer,
   unassignVolunteer,
   countAssigned,
 } from "../../firebase/firestore.js";
-
-import { TIME_OF_DAY } from "../../firebase/adminData.js";
 
 export default function AdminMatchingForm() {
   const [events, setEvents] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
   const [eventId, setEventId] = useState("");
   const [includeUnavailable, setIncludeUnavailable] = useState(false);
+  const [assigned, setAssigned] = useState([]);
+  const [assignedCount, setAssignedCount] = useState(0);
 
-  // load once
+  // Load events and volunteers once
   useEffect(() => {
-    const evts = getEvents();
-    setEvents(evts);
-    setVolunteers(getVolunteers());
-    if (evts.length && !eventId) setEventId(evts[0].id);
+    const loadData = async () => {
+      const evts = await getEvents();
+      const filteredEvents = (evts || []).filter(evt => !evt.deleted);
+      setEvents(filteredEvents);
+      if (filteredEvents.length) setEventId(filteredEvents[0].id);
+
+      const allUsers = await getVolunteers();
+      // Filter only volunteers (isAdmin === false)
+      const vols = (allUsers || []).filter(u => !u.isAdmin);
+      setVolunteers(vols);
+    };
+    loadData();
   }, []);
 
   const selected = useMemo(
@@ -32,27 +41,44 @@ export default function AdminMatchingForm() {
     [events, eventId]
   );
 
-  // recompute every time the selected event or volunteers change
-  const { bestMatches, others, assigned } = useMemo(() => {
-    if (!selected) {
-      return { bestMatches: [], others: [], assigned: [] };
-    }
+  // Load assigned volunteers for selected event
+  useEffect(() => {
+    if (!selected) return;
 
-    const req = new Set(selected.requiredSkills || []);
+    const loadAssigned = async () => {
+      const assignedVols = await getAssignedVolunteers(selected.id);
+      setAssigned(assignedVols || []);
+      const count = await countAssigned(selected.id);
+      setAssignedCount(count);
+    };
+
+    loadAssigned();
+  }, [selected, volunteers]);
+
+  // Compute best matches and others
+  const { bestMatches, others } = useMemo(() => {
+    if (!selected) return { bestMatches: [], others: [] };
+
+    const reqSkills = new Set(selected.requiredSkills || []);
     const day = selected.date;
     const tod = selected.timeOfDay || "";
 
     const scored = volunteers.map((v) => {
       const skills = new Set(v.skills || []);
-      const overlap = [...req].filter((s) => skills.has(s)).length;
-      const overlapPct =
-        req.size === 0 ? 1 : overlap / Math.max(1, req.size);
+      const overlap = [...reqSkills].filter(s => skills.has(s)).length;
+      const overlapPct = reqSkills.size === 0 ? 1 : overlap / reqSkills.size;
 
-      const available = (v.availability || []).includes(day);
-      const pref = v.preferredTimes || null; // null => any time ok
-      const timeOk = !tod || !pref || pref.includes(tod);
+      // Availability check for nested map structure
+      const available =
+        tod && v.availability?.[day]
+          ? v.availability[day][tod] === true
+          : Object.values(v.availability?.[day] || {}).some(Boolean);
 
-      // single sortable score: prioritize availability/time, then skills
+      const prefTimes = Array.isArray(v.preferredTimes) ? v.preferredTimes : [];
+      const timeOk = !tod || prefTimes.includes(tod);
+
+      const alreadyAssigned = assigned.some(a => a.id === v.id);
+
       const score =
         (available ? 1 : 0) * 100 +
         (timeOk ? 1 : 0) * 50 +
@@ -65,45 +91,36 @@ export default function AdminMatchingForm() {
         available,
         timeOk,
         score,
-        already: isAssigned(v.id, selected.id),
+        already: alreadyAssigned,
       };
     });
 
-    // assigned list (always show)
-    const assignedVols = getAssignedVolunteers(selected.id);
-
-    // “best” list = available + timeOk (unless admin opts in to show all)
-    const filtered = scored.filter((s) =>
-      includeUnavailable ? true : s.available && s.timeOk
-    );
-
+    const filtered = scored.filter(s => includeUnavailable ? true : s.available && s.timeOk);
     filtered.sort((a, b) => b.score - a.score);
 
-    // others (not available/time) only if admin wants to see everything
     const otherPool = includeUnavailable
-      ? scored.filter((s) => !(s.available && s.timeOk))
+      ? scored.filter(s => !(s.available && s.timeOk))
       : [];
-
     otherPool.sort((a, b) => b.score - a.score);
 
-    return {
-      bestMatches: filtered,
-      others: otherPool,
-      assigned: assignedVols,
-    };
-  }, [selected, volunteers, includeUnavailable]);
+    return { bestMatches: filtered, others: otherPool };
+  }, [selected, volunteers, assigned, includeUnavailable]);
 
-  const doAssign = (volId) => {
+  // Assign / Unassign handlers
+  const doAssign = async (volId) => {
     if (!selected) return;
-    assignVolunteer(volId, selected.id);
-    // refresh “assigned” count without reloading whole page
-    setVolunteers([...volunteers]);
+    await assignVolunteer(volId, selected.id);
+    const assignedVols = await getAssignedVolunteers(selected.id);
+    setAssigned(assignedVols || []);
+    setAssignedCount(assignedVols.length);
   };
 
-  const doUnassign = (volId) => {
+  const doUnassign = async (volId) => {
     if (!selected) return;
-    unassignVolunteer(volId, selected.id);
-    setVolunteers([...volunteers]);
+    await unassignVolunteer(volId, selected.id);
+    const assignedVols = await getAssignedVolunteers(selected.id);
+    setAssigned(assignedVols || []);
+    setAssignedCount(assignedVols.length);
   };
 
   if (!events.length) {
@@ -133,7 +150,7 @@ export default function AdminMatchingForm() {
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
           >
-            {events.map((e) => (
+            {events.map(e => (
               <option key={e.id} value={e.id}>
                 {e.name} — {e.date}
               </option>
@@ -143,14 +160,7 @@ export default function AdminMatchingForm() {
 
         {/* Event summary */}
         {selected && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1.2fr 1fr 1fr",
-              gap: 16,
-              marginBottom: 18,
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 16, marginBottom: 18 }}>
             <div className="vol-box">
               <div className="vol-head">Event</div>
               <div><strong>{selected.name}</strong></div>
@@ -168,251 +178,48 @@ export default function AdminMatchingForm() {
             <div className="vol-box">
               <div className="vol-head">Required Skills</div>
               <div className="pill-grid readonly">
-                {(selected.requiredSkills || []).length === 0 ? (
-                  <span className="muted">None</span>
-                ) : (
-                  selected.requiredSkills.map((s) => (
-                    <span key={s} className="pill pill-on">{s}</span>
-                  ))
-                )}
+                {(selected.requiredSkills || []).length === 0
+                  ? <span className="muted">None</span>
+                  : selected.requiredSkills.map(s => <span key={s} className="pill pill-on">{s}</span>)}
               </div>
             </div>
           </div>
         )}
 
         {/* Options */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 10,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div className="muted">
-            Showing{" "}
-            <strong>
-              {bestMatches.length}
-            </strong>{" "}
-            match{bestMatches.length === 1 ? "" : "es"} •{" "}
+            Showing <strong>{bestMatches.length}</strong> match{bestMatches.length === 1 ? "" : "es"} •{" "}
             <button
               className="btn btn-ghost"
-              onClick={() => setIncludeUnavailable((p) => !p)}
+              onClick={() => setIncludeUnavailable(p => !p)}
               type="button"
               title="Toggle showing volunteers who aren’t available on the date/time"
             >
               {includeUnavailable ? "Hide" : "Also show"} unavailable
             </button>
           </div>
-          {selected && (
-            <div className="muted">
-              Assigned: <strong>{countAssigned(selected.id)}</strong>
-            </div>
-          )}
+          {selected && <div className="muted">Assigned: <strong>{assignedCount}</strong></div>}
         </div>
-
-        {/* Matches table */}
-        <div className="table-wrap" style={{ marginBottom: 20 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th className="nowrap" style={{ width: 140 }}>Availability</th>
-                <th style={{ width: 220 }}>Time Preference</th>
-                <th>Skills Overlap</th>
-                <th className="nowrap" style={{ width: 200 }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bestMatches.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <div className="empty-state">
-                      No volunteers match the date/time filters.
-                      {includeUnavailable ? "" : " Try enabling “Also show unavailable.”"}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                bestMatches.map(({ vol, available, timeOk, overlap, overlapPct, already }) => (
-                  <tr key={vol.id}>
-                    <td>
-                      <strong>{vol.name}</strong>
-                      <div className="muted">Skills: {vol.skills?.join(", ") || "—"}</div>
-                    </td>
-                    <td className="nowrap">
-                      {selected?.date ? (
-                        available ? (
-                          <span className="badge badge-low">Available</span>
-                        ) : (
-                          <span className="badge badge-high">Not on date</span>
-                        )
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>
-                      {selected?.timeOfDay ? (
-                        (vol.preferredTimes?.length
-                          ? vol.preferredTimes.join(", ")
-                          : "Any time") +
-                        (timeOk ? "" : " (prefers different time)")
-                      ) : (
-                        vol.preferredTimes?.length ? vol.preferredTimes.join(", ") : "Any time"
-                      )}
-                    </td>
-                    <td>
-                      <div className="pill-grid readonly">
-                        {selected?.requiredSkills?.length ? (
-                          selected.requiredSkills.map((s) => (
-                            <span
-                              key={s}
-                              className={`pill ${
-                                vol.skills?.includes(s) ? "pill-on" : ""
-                              }`}
-                            >
-                              {s}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="muted">No required skills</span>
-                        )}
-                      </div>
-                      {selected?.requiredSkills?.length ? (
-                        <div className="muted" style={{ marginTop: 6 }}>
-                          Match: {(overlapPct * 100).toFixed(0)}%
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="actions nowrap">
-                      {already ? (
-                        <button
-                          className="btn btn-danger"
-                          onClick={() => doUnassign(vol.id)}
-                        >
-                          Unassign
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => doAssign(vol.id)}
-                          disabled={!selected}
-                        >
-                          Assign
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Others (not available/time) when toggled */}
-        {includeUnavailable && others.length > 0 && (
-          <>
-            <h3 className="admin-title" style={{ fontSize: 20, marginTop: 8 }}>
-              Others (not available / different time)
-            </h3>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th className="nowrap" style={{ width: 140 }}>Availability</th>
-                    <th style={{ width: 220 }}>Time Preference</th>
-                    <th>Skills Overlap</th>
-                    <th className="nowrap" style={{ width: 200 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {others.map(({ vol, available, timeOk, overlapPct, already }) => (
-                    <tr key={vol.id}>
-                      <td>
-                        <strong>{vol.name}</strong>
-                        <div className="muted">Skills: {vol.skills?.join(", ") || "—"}</div>
-                      </td>
-                      <td className="nowrap">
-                        {selected?.date ? (
-                          available ? (
-                            <span className="badge badge-low">Available</span>
-                          ) : (
-                            <span className="badge badge-high">Not on date</span>
-                          )
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td>
-                        {selected?.timeOfDay ? (
-                          (vol.preferredTimes?.length
-                            ? vol.preferredTimes.join(", ")
-                            : "Any time") +
-                          (timeOk ? "" : " (prefers different time)")
-                        ) : (
-                          vol.preferredTimes?.length ? vol.preferredTimes.join(", ") : "Any time"
-                        )}
-                      </td>
-                      <td>
-                        {selected?.requiredSkills?.length ? (
-                          <div className="muted">Match: {(overlapPct * 100).toFixed(0)}%</div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="actions nowrap">
-                        {already ? (
-                          <button
-                            className="btn btn-danger"
-                            onClick={() => doUnassign(vol.id)}
-                          >
-                            Unassign
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn-secondary"
-                            onClick={() => doAssign(vol.id)}
-                            disabled={!selected}
-                          >
-                            Assign anyway
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
 
         {/* Assigned list */}
         {selected && (
           <div className="vol-box" style={{ marginTop: 20 }}>
             <div className="vol-head">
-              Assigned to <strong>{selected.name}</strong>{" "}
-              <span className="muted">({countAssigned(selected.id)})</span>
+              Assigned to <strong>{selected.name}</strong> <span className="muted">({assignedCount})</span>
             </div>
-            {assigned.length === 0 ? (
-              <div className="muted">No volunteers assigned.</div>
-            ) : (
-              <ul className="vol-list">
-                {assigned.map((v) => (
-                  <li key={v.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <strong>{v.name}</strong>
-                    <span className="muted">— {v.skills.join(", ")}</span>
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => doUnassign(v.id)}
-                      style={{ marginLeft: 8 }}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {assigned.length === 0
+              ? <div className="muted">No volunteers assigned.</div>
+              : <ul className="vol-list">
+                  {assigned.map(v => (
+                    <li key={v.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <strong>{v.name}</strong>
+                      <span className="muted">— {v.skills.join(", ")}</span>
+                      <button className="btn btn-ghost" onClick={() => doUnassign(v.id)} style={{ marginLeft: 8 }}>Remove</button>
+                    </li>
+                  ))}
+                </ul>
+            }
           </div>
         )}
       </section>
