@@ -9,9 +9,9 @@ import {
   assignVolunteer,
   unassignVolunteer,
   countAssigned,
-} from "../../lib/adminStore.js";
+} from "../../firebase/firestore.js";
 
-import { TIME_OF_DAY } from "../../lib/adminData.js";
+import { TIME_OF_DAY } from "../../firebase/firestore.js";
 
 export default function AdminMatchingForm() {
   const [events, setEvents] = useState([]);
