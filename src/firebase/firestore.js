@@ -95,13 +95,17 @@ export const getVolunteers = async () => {
     .filter(u => u.isAdmin === false)
     .map(u => ({
       ...u,
-      availability: Array.isArray(u.availability) ? u.availability : [],
+      availability:
+        u.availability && typeof u.availability === "object"
+          ? u.availability
+          : {},
       preferredTimes: Array.isArray(u.preferredTimes) ? u.preferredTimes : [],
       skills: Array.isArray(u.skills) ? u.skills : [],
     }));
 
   return volunteers;
 };
+
 
 /* ----------------- Assignments ----------------- */
 export const getAssignments = async () => getData("assignments");
