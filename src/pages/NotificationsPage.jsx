@@ -22,15 +22,15 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [sendType, setSendType] = useState("assignment"); 
+  const [sendType, setSendType] = useState("assignment");
   const location = useLocation();
 
   const role = profile?.isAdmin ? "admin" : "volunteer";
   const backHref = location.pathname.startsWith("/admin")
     ? "/admin"
     : role === "admin"
-    ? "/admin"
-    : "/dashboard";
+      ? "/admin"
+      : "/dashboard";
 
   const uid = getAuth().currentUser?.uid || null;
 
@@ -149,38 +149,43 @@ const NotificationsPage = () => {
 
         {!loading && !err && messages.length > 0 && (
           <ul className="messages-list">
-            {messages.map((m) => (
-              <li key={m.id}>
-                <div className="msg-subject">{m.subject}</div>
-                <div className="msg-meta">
-                  {m.from ? <>From: {m.from} • </> : null}
-                  {m.to ? <>To: {m.to}</> : null}
-                </div>
-                <p>{m.body}</p>
+            {messages.map((m) => {
+              const isUnread = uid && !(m.readBy || []).includes(uid);
+              return (
+                <li key={m.id} className={`message-item ${isUnread ? "unread" : "read"}`}>
+                  <div className="msg-row">
+                    {isUnread && <span className="msg-dot" aria-label="unread" />}
+                    <div className={`msg-subject ${isUnread ? "msg-subject-unread" : ""}`}>{m.subject}</div>
+                  </div>
 
-                {uid && !(m.readBy || []).includes(uid) && (
-                  <button
-                    className="notification-send-btn"
-                    style={{ marginTop: 8 }}
-                    onClick={async () => {
-                      try {
-                        await markNotificationRead(m.id);
-                        // update local state
-                        setMessages((prev) =>
-                          prev.map((x) =>
-                            x.id === m.id ? { ...x, readBy: [...(x.readBy || []), uid] } : x
-                          )
-                        );
-                      } catch (e) {
-                        alert("Failed to mark as read: " + (e?.message || e));
-                      }
-                    }}
-                  >
-                    Mark as read
-                  </button>
-                )}
-              </li>
-            ))}
+                  <div className="msg-meta">
+                    {m.from ? <>From: {m.from} • </> : null}
+                    {m.to ? <>To: {m.to}</> : null}
+                  </div>
+
+                  <p className="msg-body">{m.body}</p>
+
+                  {uid && isUnread && (
+                    <button
+                      className="mark-read"
+                      onClick={async () => {
+                        try {
+                          await markNotificationRead(m.id);
+                          setMessages(prev =>
+                            prev.map(x => x.id === m.id ? { ...x, readBy: [...(x.readBy || []), uid] } : x)
+                          );
+                        } catch (e) {
+                          alert("Failed to mark as read: " + (e?.message || e));
+                        }
+                      }}
+                    >
+                      Mark as read
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+
           </ul>
         )}
       </section>
