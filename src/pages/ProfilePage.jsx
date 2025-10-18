@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import{ useNavigate } from 'react-router-dom';
 import { UsaStates } from 'usa-states';
 import { saveUserProfile, getUserProfile } from '../firebase/firestore';
 import { getAuth } from "firebase/auth";
@@ -12,6 +13,7 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 const TIMES = ['Morning', 'Afternoon', 'Evening'];
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: '',
     address1: '',
@@ -136,7 +138,7 @@ const ProfilePage = () => {
     try {
       await saveUserProfile(form);
       alert("Profile saved successfully!");
-      Navigate('/dashboard');
+      navigate('/dashboard');
     } catch (err) {
       console.error("Error saving profile:", err);
       alert("Failed to save profile.");

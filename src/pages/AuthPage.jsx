@@ -18,12 +18,13 @@ const AuthPage = () => {
       if (isSignup) {
         await signUp(form.email, form.password);
         alert('Signup successful!');
+        navigate('/profile');
       } else {
         await login(form.email, form.password);
         alert('Login successful!');
       }
       setForm({ email: '', password: '' });
-      navigate('/profile');
+      navigate('/dashboard');
     } catch (error) {
       alert(error.message);
     }

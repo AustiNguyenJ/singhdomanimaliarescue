@@ -178,3 +178,24 @@ export const createNotification = async (payload) => {
 
   return await addData("notifications", notif);
 };
+
+
+/* ----------------- Volunteer History ----------------- */
+export const getVolunteerEvents = async () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error("No logged-in user");
+
+  const allEventsSnapshot = await getDocs(
+    query(collection(db, "events"), orderBy("createdAt", "desc"))
+  );
+
+  const allEvents = allEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // Filter events where the user is assigned
+  const assignedEvents = allEvents.filter(event => {
+    return Array.isArray(event.assignedVolunteers) && event.assignedVolunteers.includes(user.email);
+  });
+
+  return assignedEvents;
+};
