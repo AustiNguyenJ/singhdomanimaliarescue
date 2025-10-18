@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import '../App.css'
+import dogImg from '../assets/DogAndVolunteer.jpg';
 import { PawPrint, Heart, Globe } from '../components/Icons';
 
 const LandingPage = () => {
@@ -28,7 +29,7 @@ const LandingPage = () => {
         <section id="about" className="landing-about">
           <div className="landing-about-content">
             <div className="landing-about-img">
-              <img src="src\assets\DogAndVolunteer.jpg" alt="A happy dog with a volunteer" />
+              <img src={dogImg} alt="A happy dog with a volunteer" />
             </div>
             <div className="landing-about-text">
               <h2>Who We Are</h2>

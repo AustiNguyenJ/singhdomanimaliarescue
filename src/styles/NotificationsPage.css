@@ -155,3 +155,50 @@
 .notification-send-btn:active {
   transform: scale(0.98);
 }
+
+/* Unread and Read notifications */
+.message-item {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+  border-left: 4px solid transparent;
+}
+
+.message-item.unread {
+  background: #f8fbff;             /* soft blue wash */
+  border-left-color: #3b82f6;       /* blue accent bar */
+}
+
+.message-item.read {
+  opacity: 0.85;                    /* slightly subdued */
+}
+
+.msg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msg-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #3b82f6;              /* blue unread dot */
+}
+
+.msg-subject-unread {
+  font-weight: 800;                  /* heavier than default 700 */
+}
+
+.mark-read {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  padding: 0;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.mark-read:hover {
+  text-decoration: underline;
+}

@@ -1,15 +1,7 @@
-import {
-  getAuth,
-  setPersistence,
-  browserLocalPersistence,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
-import { app } from "./config"; 
+import { getAuth, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { app } from "./config";
 
 export const auth = getAuth(app);
-
 setPersistence(auth, browserLocalPersistence);
 
 export const signUp = (email, password) =>
