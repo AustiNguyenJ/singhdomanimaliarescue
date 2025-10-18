@@ -1,11 +1,15 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ allowedRoles = [] }) {
   const { user, loading } = useAuth();
 
-  if (loading) return <p>Loading...</p>;          // wait for Firebase to check session
-  if (!user) return <Navigate to="/auth" replace />;  // 🚫 redirect to login if no user
+  if (loading) return <p>Loading...</p>;
+  if (!user) return <Navigate to="/auth" replace />;
 
-  return children;                                // ✅ render the protected page
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return <Outlet />;
 }
