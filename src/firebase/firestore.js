@@ -12,7 +12,8 @@ import {
   where,
   orderBy,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth } from 'firebase/auth';
+import * as firestore from "./firestore.js"
 
 /* ----------------- Generic Firestore Functions ----------------- */
 export const addData = async (collectionName, data) => {
@@ -39,7 +40,9 @@ export const saveUserProfile = async (data) => {
     createdAt: serverTimestamp(),
   };
 
-  await setDoc(doc(db, "users", user.email), userDoc, { merge: true });
+  // inside saveUserProfile
+  await firestore.setDoc(firestore.doc(db, "users", user.email), userDoc, { merge: true });
+
 };
 
 export const getUserProfile = async () => {
@@ -133,7 +136,7 @@ export const assignVolunteer = async (volunteerEmail, eventId) => {
     }
 
     // Create notification
-    await createNotification({
+    await firestore.createNotification({
       title: "New Event Assignment",
       message: `You have been assigned to the event: "${eventData.name || "Unnamed Event"}"`,
       eventId,
@@ -241,3 +244,5 @@ export const getVolunteerEvents = async () => {
 
   return assignedEvents;
 };
+
+export { setDoc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, doc, collection };

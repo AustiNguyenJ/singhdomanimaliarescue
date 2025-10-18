@@ -1,7 +1,16 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+/// <reference types="vitest" />
+import { defineConfig } from "vitest/config";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  test: {
+    globals: true,
+    environment: "jsdom",
+    coverage: {
+      provider: "v8", // can also use "istanbul"
+      reporter: ["text", "html"],
+      reportsDirectory: "./coverage",
+      include: ["src/firebase/**"], // adjust to your code location
+      exclude: ["**/__mocks__/**", "**/tests/**"]
+    },
+  },
+});

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/admin.css";
 
-import { SKILLS, URGENCY, TIME_OF_DAY } from "../firebase/adminData.js";
+import { SKILLS, URGENCY, TIME_OF_DAY } from "../assets/adminData.js";
 import { createEvent } from "../firebase/firestore.js";
 
 const maxLen = (s, n) => (s || "").trim().length <= n;
