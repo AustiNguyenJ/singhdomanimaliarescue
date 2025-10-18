@@ -2,30 +2,28 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "../styles/NotificationsPage.css";
 import { listNotifications, createNotification } from "../firebase/firestore.js";
+import { useAuth } from "../context/AuthContext";
 
 const NotificationsPage = () => {
+  const { user, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const location = useLocation();
 
-  // Get current user from localStorage
-  const user = JSON.parse(localStorage.getItem("currentUser") || "null");
-  const isAdmin = user?.isAdmin || false;
+  // Wait until Firebase auth finishes
+  if (authLoading) return <p>Loading…</p>;
+  if (!user) return <p>No logged-in user found.</p>;
 
+  const isAdmin = user.isAdmin || false;
   const backHref = location.pathname.startsWith("/admin") || isAdmin
     ? "/admin"
     : "/dashboard";
 
   /* ----------------- Load notifications ----------------- */
   useEffect(() => {
-    if (!user) {
-      setErr("No logged-in user found.");
-      setLoading(false);
-      return;
-    }
-
     let alive = true;
+
     (async () => {
       try {
         setLoading(true);
@@ -41,12 +39,11 @@ const NotificationsPage = () => {
     })();
 
     return () => { alive = false; };
-  }, []);
+  }, [user.email, user.role]);
 
   /* ----------------- Send notification ----------------- */
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!user) return;
 
     const subject = e.target.subject.value;
     const body = e.target.body.value;
@@ -63,7 +60,6 @@ const NotificationsPage = () => {
       e.target.reset();
       alert("Notification sent!");
 
-      // Refresh list
       const updated = await listNotifications(user.email, user.role);
       setMessages(updated);
     } catch (err) {
