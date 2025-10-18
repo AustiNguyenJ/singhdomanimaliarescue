@@ -17,6 +17,14 @@ const AuthPage = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // Simple email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
     try {
       if (isSignup) {
         await signUp(form.email, form.password);
