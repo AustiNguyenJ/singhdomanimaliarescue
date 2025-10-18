@@ -1,3 +1,10 @@
+.app-container{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #fff;
+}
+
 /* Profile Page */
 
 .profile-availability-table table {
@@ -20,7 +27,6 @@
 }
 
 .profile-root {
-  min-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,7 +99,6 @@
 /* Contact page */
 
 .contact-root {
-  min-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,7 +189,6 @@
 /* About Page */
 
 .about-root {
-  min-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -277,7 +281,6 @@ body, html {
 }
 
 .landing-root {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -531,7 +534,6 @@ body, html {
 }
 
 .auth-root {
-  min-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
