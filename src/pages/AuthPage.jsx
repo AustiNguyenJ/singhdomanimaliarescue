@@ -1,23 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect,useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { signUp, login } from '../firebase/auth'; 
+import { useAuth } from "../context/AuthContext";
 
 const AuthPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = e => {
+
+
+  const handleSubmit = async e => {
     e.preventDefault();
-    // Placeholder: handle signup or login logic here
-    alert(isSignup ? 'Signup successful!' : 'Login successful!');
-    setForm({ email: '', password: '' });
-    // Redirect to profile page after login/signup
-    navigate('/profile');
+
+    // Simple email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      if (isSignup) {
+        await signUp(form.email, form.password);
+        alert('Signup successful!');
+      } else {
+        await login(form.email, form.password);
+        alert('Login successful!');
+      }
+      setForm({ email: '', password: '' });
+    } catch (error) {
+      alert(error.message);
+    }
   };
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (user.isAdmin) navigate('/admin');
+      else navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+
 
   return (
     <div className="auth-root">
