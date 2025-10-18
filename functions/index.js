@@ -10,7 +10,6 @@
 const {setGlobalOptions} = require("firebase-functions");
 const {onRequest} = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
-const cors = require("cors")({ origin: true });
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -24,31 +23,10 @@ const cors = require("cors")({ origin: true });
 // this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-const volunteerHistory = require("./modules/volunteerHistory");
+// Create and deploy your first functions
+// https://firebase.google.com/docs/functions/get-started
 
-// NEW: bring in the shared store so all endpoints read the same data
-const { store } = require("./modules/store");
-
-const express = require("express");
-
-// https endpoint that returns volunteer history
-exports.getVolunteerHistory = functions.https.onRequest((req, res) => {
-    cors(req, res, () => {
-        // NEW: return the unified store data (replaces hard-coded array)
-        res.status(200).json({
-            data: store.history,
-        });
-    });
-});
-
-admin.initializeApp();
-const app = express();
-app.use(express.json());
-
-// FIX: add leading slash so the router mounts correctly
-app.use("/history", volunteerHistory);
-
-// Export the API as an HTTPS function
-exports.api = functions.https.onRequest(app);
+// exports.helloWorld = onRequest((request, response) => {
+//   logger.info("Hello logs!", {structuredData: true});
+//   response.send("Hello from Firebase!");
+// });
