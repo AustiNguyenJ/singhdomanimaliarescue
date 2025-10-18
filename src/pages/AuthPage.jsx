@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect,useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signUp, login } from '../firebase/auth'; 
 import { useAuth } from "../context/AuthContext";
@@ -7,10 +7,13 @@ const AuthPage = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -18,17 +21,23 @@ const AuthPage = () => {
       if (isSignup) {
         await signUp(form.email, form.password);
         alert('Signup successful!');
-        navigate('/profile');
       } else {
         await login(form.email, form.password);
         alert('Login successful!');
       }
       setForm({ email: '', password: '' });
-      navigate('/dashboard');
     } catch (error) {
       alert(error.message);
     }
   };
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (user.isAdmin) navigate('/admin');
+      else navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
+
 
   return (
     <div className="auth-root">

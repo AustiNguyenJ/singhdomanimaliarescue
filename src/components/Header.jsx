@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 
 const Header = () => {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const auth = getAuth();
@@ -19,6 +21,7 @@ const Header = () => {
       console.log("Signing out user:", user?.email);
       await signOut(auth);
       setUser(null);
+      navigate('/');
     } catch (err) {
       console.error("Error signing out:", err);
     }
@@ -34,6 +37,10 @@ const Header = () => {
           <Link to="/about">About</Link>
           <Link to="/get-involved">Get Involved</Link>
           <Link to="/contact">Contact</Link>
+          {user ? (
+            <Link to="/dashboard">Dashboard</Link>
+          ): (<></>)         
+          }
         </div>
 
         {user ? (

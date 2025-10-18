@@ -119,26 +119,62 @@ export const getAssignedVolunteers = async (eventId) => {
 };
 
 export const assignVolunteer = async (volunteerEmail, eventId) => {
-  const eventRef = doc(db, "events", eventId);
-  const snapshot = await getDoc(eventRef);
-  const eventData = snapshot.exists() ? snapshot.data() : {};
+  try {
+    const eventRef = doc(db, "events", eventId);
+    const snapshot = await getDoc(eventRef);
+    if (!snapshot.exists()) throw new Error("Event not found");
 
-  const assigned = new Set(eventData.assignedVolunteers || []);
-  assigned.add(volunteerEmail);
+    const eventData = snapshot.data();
+    const assigned = Array.isArray(eventData.assignedVolunteers) ? eventData.assignedVolunteers : [];
 
-  await updateDoc(eventRef, { assignedVolunteers: Array.from(assigned) });
+    if (!assigned.includes(volunteerEmail)) {
+      assigned.push(volunteerEmail);
+      await updateDoc(eventRef, { assignedVolunteers: assigned });
+    }
+
+    // Create notification
+    await createNotification({
+      title: "New Event Assignment",
+      message: `You have been assigned to the event: "${eventData.name || "Unnamed Event"}"`,
+      eventId,
+      userEmail: volunteerEmail,
+      audience: { roles: ["volunteer"] },
+      deleted: false,
+    });
+  } catch (err) {
+    console.error("Failed to assign volunteer:", err);
+    throw err;
+  }
 };
 
 export const unassignVolunteer = async (volunteerEmail, eventId) => {
-  const eventRef = doc(db, "events", eventId);
-  const snapshot = await getDoc(eventRef);
-  const eventData = snapshot.exists() ? snapshot.data() : {};
+  try {
+    const eventRef = doc(db, "events", eventId);
+    const snapshot = await getDoc(eventRef);
+    if (!snapshot.exists()) throw new Error("Event not found");
 
-  const updated = (eventData.assignedVolunteers || []).filter(
-    e => e !== volunteerEmail
-  );
+    const eventData = snapshot.data();
+    const updated = Array.isArray(eventData.assignedVolunteers)
+      ? eventData.assignedVolunteers.filter(e => e !== volunteerEmail)
+      : [];
+    await updateDoc(eventRef, { assignedVolunteers: updated });
 
-  await updateDoc(eventRef, { assignedVolunteers: updated });
+    // Mark notifications as deleted
+    const notifQuery = query(
+      collection(db, "notifications"),
+      where("eventId", "==", eventId),
+      where("userEmail", "==", volunteerEmail),
+      where("deleted", "==", false)
+    );
+    const notifSnapshot = await getDocs(notifQuery);
+
+    for (const docSnap of notifSnapshot.docs) {
+      await updateDoc(doc(db, "notifications", docSnap.id), { deleted: true });
+    }
+  } catch (err) {
+    console.error("Failed to unassign volunteer:", err);
+    throw err;
+  }
 };
 
 export const countAssigned = async (eventId) => {
@@ -149,34 +185,40 @@ export const countAssigned = async (eventId) => {
 };
 
 /* ----------------- Notifications ----------------- */
-export const listNotifications = async () => {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  if (!user) throw new Error("No logged-in user");
+export const listNotifications = async (userEmail, role = "volunteer") => {
+  if (!userEmail) return [];
 
   const q = query(
     collection(db, "notifications"),
-    where("audienceRoles", "array-contains", user.role || "volunteer"),
+    where("audienceRoles", "array-contains", role),
     orderBy("createdAt", "desc")
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(notif => !notif.deleted); // filter out deleted notifications
 };
 
+
+
 export const createNotification = async (payload) => {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  if (!user) throw new Error("No logged-in user");
+  try {
+    const notif = {
+      ...payload,
+      userEmail: payload.userEmail || "anonymous",
+      audienceRoles: payload.audience?.roles || ["volunteer"],
+      deleted: payload.deleted || false,
+      createdAt: serverTimestamp(),
+    };
 
-  const notif = {
-    ...payload,
-    userEmail: user.email || "anonymous",
-    createdAt: serverTimestamp(),
-    audienceRoles: payload.audience?.roles || ["volunteer"],
-  };
-
-  return await addData("notifications", notif);
+    const docRef = await addDoc(collection(db, "notifications"), notif);
+    console.log("Notification created with ID:", docRef.id);
+    return { id: docRef.id, ...notif };
+  } catch (err) {
+    console.error("Failed to create notification:", err);
+    throw err;
+  }
 };
 
 
