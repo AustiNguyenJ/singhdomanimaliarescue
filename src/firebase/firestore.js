@@ -58,13 +58,10 @@ export const getUserProfile = async () => {
 export const getEvents = async () => {
   const events = await getData("events");
   // fetch assignments and volunteers for each event
-  const assignments = await getData("assignments");
-  const volunteers = await getData("volunteers");
+
 
   return events.map(evt => {
-    const assignedIds = assignments.filter(a => a.eventId === evt.id).map(a => a.volunteerId);
-    const assignedVolunteers = volunteers.filter(v => assignedIds.includes(v.id));
-    return { ...evt, assignedVolunteers };
+    return{ ...evt};
   });
 };
 
