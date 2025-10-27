@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { getAuth, signOut } from 'firebase/auth';
 
 const Header = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("currentUser"); 
     setUser(storedUser ? JSON.parse(storedUser) : null);
-
-  }, []);
+    
+  }, [location]);
 
   const handleSignOut = async () => {
     try {

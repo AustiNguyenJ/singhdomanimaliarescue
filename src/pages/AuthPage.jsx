@@ -32,6 +32,7 @@ const AuthPage = () => {
       } else {
         await login(form.email, form.password);
         alert('Login successful!');
+    
       }
       setForm({ email: '', password: '' });
     } catch (error) {
