@@ -8,11 +8,9 @@ const Header = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
+    const storedUser = localStorage.getItem("currentUser"); 
+    setUser(storedUser ? JSON.parse(storedUser) : null);
+
   }, []);
 
   const handleSignOut = async () => {
@@ -37,10 +35,12 @@ const Header = () => {
           <Link to="/about">About</Link>
           <Link to="/get-involved">Get Involved</Link>
           <Link to="/contact">Contact</Link>
-          {user ? (
+          {user?.role === "volunteer" ? (
             <Link to="/dashboard">Dashboard</Link>
-          ): (<></>)         
-          }
+          ) : user?.role === "admin" ? (
+            <Link to="/admin">Admin Dashboard</Link>
+          ) : null}
+
         </div>
 
         {user ? (

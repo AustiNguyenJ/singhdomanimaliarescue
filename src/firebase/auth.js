@@ -4,6 +4,8 @@ import { app } from "./config";
 export const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence);
 
+
+
 export const signUp = (email, password) =>
   createUserWithEmailAndPassword(auth, email, password);
 
