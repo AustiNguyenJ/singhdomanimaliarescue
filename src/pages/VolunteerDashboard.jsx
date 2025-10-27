@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../styles/VolunDashboard.css"
 
 export default function VolunteerDashboard() {
+
     console.log("VolunteerDashboard rendering v3");
     return (
         <div className="volunteer-dashboard">
             <h1>Volunteer Dashboard</h1>
-            <p className="subtitle">Welcome back, <strong>[Volunteer Name]</strong>! Use the options below to manage your volunteering activity.</p>
+            <p className="subtitle">Welcome back! - Use the options below to manage your volunteering activity.</p>
 
             <div className="dashboard-grid">
                 <div className="dashboard-card">
