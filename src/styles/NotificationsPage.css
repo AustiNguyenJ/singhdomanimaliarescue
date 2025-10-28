@@ -41,6 +41,7 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   padding: 16px;
   margin-bottom: 20px;
+  max-width: fit-content;
 }
 
 /* Form fields */
@@ -114,9 +115,11 @@
   color: #333;
 }
 
+
 .notification-input,
+.notification-select,
 .notification-textarea {
-  width: 100%;
+  width: 95%;
   padding: 0.75rem;
   margin-bottom: 1rem;
   border: 1px solid #ccc;

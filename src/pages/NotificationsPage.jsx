@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "../styles/NotificationsPage.css";
-import { listNotifications, createNotification } from "../firebase/firestore.js";
+import { listNotifications, createNotification, getEvents } from "../firebase/firestore.js";
 import { useAuth } from "../context/AuthContext";
 
 const NotificationsPage = () => {
@@ -10,6 +10,8 @@ const NotificationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const location = useLocation();
+  const [events, setEvents] = useState([]);
+  const [eventId, setEventId] = useState("");
 
   // Wait until Firebase auth finishes
   if (authLoading) return <p>Loading…</p>;
@@ -20,6 +22,21 @@ const NotificationsPage = () => {
     ? "/admin"
     : "/dashboard";
 
+
+    useEffect(() => {
+      const loadEvents = async () => {
+        try {
+          const evts = await getEvents();
+          const filtered = (evts || []).filter(evt => !evt.deleted);
+          setEvents(filtered);
+          if (filtered.length && !eventId) setEventId(filtered[0].id);
+        }
+        catch (e) {
+          console.error("Failed to load events:", e);
+        }
+      };
+      loadEvents();  
+    }, []);
   /* ----------------- Load notifications ----------------- */
   useEffect(() => {
     let alive = true;
@@ -45,11 +62,13 @@ const NotificationsPage = () => {
   const handleSend = async (e) => {
     e.preventDefault();
 
+    const evt = e.target.evt.value;
     const subject = e.target.subject.value;
     const body = e.target.body.value;
 
     try {
       await createNotification({
+        eventId: evt,
         subject,
         body,
         userEmail: user.email,
@@ -77,6 +96,18 @@ const NotificationsPage = () => {
       {isAdmin && (
         <form onSubmit={handleSend} className="card admin-send-form">
           <h3>Send a New Notification</h3>
+          <select
+            name="evt"
+            className="notification-select"
+            value={eventId}
+            onChange={(e) => setEventId(e.target.value)}
+          >
+            {events.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} — {e.date}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             name="subject"
