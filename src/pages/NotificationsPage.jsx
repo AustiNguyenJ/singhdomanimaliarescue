@@ -138,9 +138,11 @@ const NotificationsPage = () => {
             {messages.map((m) => (
               <li key={m.id}>
                 <div className="msg-subject">{m.subject || m.title}</div>
-                <div className="msg-meta">
-                  {m.userEmail && <>From: {m.userEmail} • </>}
-                  {m.audienceRoles?.length && <>To: {m.audienceRoles.join(", ")}</>}
+                <div className="msg-meta">  
+                  {m.title != "New Event Assignment" ? 
+                    m.userEmail && <>From: Event Admin </>
+                  : null}
+                    {/* {m.audienceRoles?.length && <>To: {m.userEmail}</>} */}
                 </div>
                 <p>{m.body || m.message}</p>
               </li>
