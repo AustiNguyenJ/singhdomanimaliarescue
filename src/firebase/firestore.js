@@ -1,18 +1,32 @@
 import { db } from "./config";
-import { collection, addDoc, getDocs } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
+import { getAuth } from 'firebase/auth';
+import * as firestore from "./firestore.js"
 
-export const addData = async (collectionName, data) =>
-  await addDoc(collection(db, collectionName), data);
+/* ----------------- Generic Firestore Functions ----------------- */
+export const addData = async (collectionName, data) => {
+  const docRef = await addDoc(collection(db, collectionName), { ...data, createdAt: serverTimestamp() });
+  return { id: docRef.id, ...data };
+};
 
 export const getData = async (collectionName) => {
   const snapshot = await getDocs(collection(db, collectionName));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-
-// Create or update a user's profile
+/* ----------------- User Profile Functions ----------------- */
 export const saveUserProfile = async (data) => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -21,15 +35,16 @@ export const saveUserProfile = async (data) => {
   const userDoc = {
     ...data,
     isAdmin: false,
-    assignedTasks: [0],
+    assignedTasks: [],
     email: user.email || "",
     createdAt: serverTimestamp(),
   };
 
-  await setDoc(doc(db, "users", user.email), userDoc, { merge: true });
+  // inside saveUserProfile
+  await firestore.setDoc(firestore.doc(db, "users", user.email), userDoc, { merge: true });
+
 };
 
-// Fetch a user's profile
 export const getUserProfile = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -38,3 +53,211 @@ export const getUserProfile = async () => {
   const docSnap = await getDoc(doc(db, "users", user.email));
   return docSnap.exists() ? docSnap.data() : null;
 };
+
+/* ----------------- Events ----------------- */
+export const getEvents = async () => {
+  const events = await getData("events");
+  // fetch assignments and volunteers for each event
+
+
+  return events.map(evt => {
+    return{ ...evt};
+  });
+};
+
+export const createEvent = async (evt) => {
+  return await addData("events", evt);
+};
+
+export const updateEvent = async (id, patch) => {
+  const docRef = doc(db, "events", id);
+  await updateDoc(docRef, patch);
+};
+
+export const deleteEvent = async (id) => {
+  // Soft-delete the event itself
+  const eventRef = doc(db, "events", id);
+  await updateDoc(eventRef, { deleted: true });
+
+  // Soft-delete related assignments
+  const assignments = await getData("assignments");
+  const related = assignments.filter(a => a.eventId === id);
+  for (const a of related) {
+    await updateDoc(doc(db, "assignments", a.id), { deleted: true });
+  }
+};
+
+/* ----------------- Volunteers ----------------- */
+export const getVolunteers = async () => {
+  const allUsers = await getData("users");
+
+  const volunteers = allUsers
+    .filter(u => u.isAdmin === false)
+    .map(u => ({
+      ...u,
+      availability:
+        u.availability && typeof u.availability === "object"
+          ? u.availability
+          : {},
+      preferredTimes: Array.isArray(u.preferredTimes) ? u.preferredTimes : [],
+      skills: Array.isArray(u.skills) ? u.skills : [],
+    }));
+
+  return volunteers;
+};
+
+
+/* ----------------- Assignments ----------------- */
+
+export const getAssignedVolunteers = async (eventId) => {
+  const events = await getData("events");
+  const event = events.find(e => e.id === eventId);
+  if (!event || !Array.isArray(event.assignedVolunteers)) return [];
+
+  const volunteers = await getVolunteers();
+  return volunteers.filter(v => event.assignedVolunteers.includes(v.email));
+};
+
+export const assignVolunteer = async (volunteerEmail, eventId) => {
+  try {
+    const eventRef = doc(db, "events", eventId);
+    const snapshot = await getDoc(eventRef);
+    if (!snapshot.exists()) throw new Error("Event not found");
+
+    const eventData = snapshot.data();
+    const assigned = Array.isArray(eventData.assignedVolunteers) ? eventData.assignedVolunteers : [];
+
+    if (!assigned.includes(volunteerEmail)) {
+      assigned.push(volunteerEmail);
+      await updateDoc(eventRef, { assignedVolunteers: assigned });
+    }
+
+    // Create notification
+    await firestore.createNotification({
+      title: "New Event Assignment",
+      message: `You have been assigned to the event: "${eventData.name || "Unnamed Event"}"`,
+      eventId,
+      userEmail: volunteerEmail,
+      audience: { roles: ["volunteer"] },
+      deleted: false,
+    });
+  } catch (err) {
+    console.error("Failed to assign volunteer:", err);
+    throw err;
+  }
+};
+
+export const unassignVolunteer = async (volunteerEmail, eventId) => {
+  try {
+    const eventRef = doc(db, "events", eventId);
+    const snapshot = await getDoc(eventRef);
+    if (!snapshot.exists()) throw new Error("Event not found");
+
+    const eventData = snapshot.data();
+    const updated = Array.isArray(eventData.assignedVolunteers)
+      ? eventData.assignedVolunteers.filter(e => e !== volunteerEmail)
+      : [];
+    await updateDoc(eventRef, { assignedVolunteers: updated });
+
+    // Mark notifications as deleted
+    const notifQuery = query(
+      collection(db, "notifications"),
+      where("eventId", "==", eventId),
+      where("userEmail", "==", volunteerEmail),
+      where("deleted", "==", false)
+    );
+    const notifSnapshot = await getDocs(notifQuery);
+
+    for (const docSnap of notifSnapshot.docs) {
+      await updateDoc(doc(db, "notifications", docSnap.id), { deleted: true });
+    }
+  } catch (err) {
+    console.error("Failed to unassign volunteer:", err);
+    throw err;
+  }
+};
+
+export const countAssigned = async (eventId) => {
+  const eventRef = doc(db, "events", eventId);
+  const snapshot = await getDoc(eventRef);
+  const data = snapshot.exists() ? snapshot.data() : {};
+  return Array.isArray(data.assignedVolunteers) ? data.assignedVolunteers.length : 0;
+};
+
+/* ----------------- Notifications ----------------- */
+export const listNotifications = async (userEmail, role = "volunteer") => {
+  if (!userEmail) return [];
+
+  const q = query(
+    collection(db, "notifications"),
+    where("audienceRoles", "array-contains", role),
+    orderBy("createdAt", "desc")
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(notif => !notif.deleted); // filter out deleted notifications
+};
+
+
+
+export const createNotification = async (payload) => {
+  try {
+    const notif = {
+      ...payload,
+      userEmail: payload.userEmail || "anonymous",
+      audienceRoles: payload.audience?.roles || ["volunteer"],
+      deleted: payload.deleted || false,
+      createdAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(collection(db, "notifications"), notif);
+    console.log("Notification created with ID:", docRef.id);
+    return { id: docRef.id, ...notif };
+  } catch (err) {
+    console.error("Failed to create notification:", err);
+    throw err;
+  }
+};
+
+
+/* ----------------- Volunteer History ----------------- */
+export const getVolunteerEvents = async () => {
+  const auth = getAuth();
+  const u = auth.currentUser;
+  if (!u) throw new Error("No logged-in user");
+  const token = await u.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
+
+// GET list notifications visible to the current user
+export const getNotifications = async () => {
+  const headers = await authHeader();
+  const res = await fetch(`${API_BASE}/notifications`, { headers });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`GET /notifications ${res.status} ${msg}`);
+  }
+  return res.json();
+};
+
+// POST admin creates a notification
+export const sendNotification = async (payload) => {
+  const headers = { "Content-Type": "application/json", ...(await authHeader()) };
+  const res = await fetch(`${API_BASE}/notifications`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`POST /notifications ${res.status} ${msg}`);
+  }
+  return res.json();
+};
+
+ // return assignedEvents;
+
+
+export { setDoc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, doc, collection };
