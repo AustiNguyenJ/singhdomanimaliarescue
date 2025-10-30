@@ -1,20 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "../styles/NotificationsPage.css";
-import {
-  getNotifications,
-  sendNotification,
-  sendNotificationUpdate,
-  sendNotificationReminder,
-  markNotificationRead,
-  getUserProfile,
-} from "../firebase/firestore.js";
-import { getAuth } from "firebase/auth";
-
-const demoMessages = [
-  { id: 1, from: "Admin", to: "All Volunteers", subject: "Saturday Clean-Up", body: "Arrive 9AM. Bring gloves.", readBy: [] },
-  { id: 2, from: "Event Lead", to: "Dog Walkers", subject: "5 puppies need walks", body: "We are short dog walkers.", readBy: [] },
-];
+import { listNotifications, createNotification, getEvents } from "../firebase/firestore.js";
+import { useAuth } from "../context/AuthContext";
 
 const NotificationsPage = () => {
   // start with demo so we see layout; demo will be replaced with backend data if present
@@ -24,6 +12,8 @@ const NotificationsPage = () => {
   const [profile, setProfile] = useState(null);
   const [sendType, setSendType] = useState("assignment");
   const location = useLocation();
+  const [events, setEvents] = useState([]);
+  const [eventId, setEventId] = useState("");
 
   const role = profile?.isAdmin ? "admin" : "volunteer";
   const backHref = location.pathname.startsWith("/admin")
@@ -34,6 +24,22 @@ const NotificationsPage = () => {
 
   const uid = getAuth().currentUser?.uid || null;
 
+
+    useEffect(() => {
+      const loadEvents = async () => {
+        try {
+          const evts = await getEvents();
+          const filtered = (evts || []).filter(evt => !evt.deleted);
+          setEvents(filtered);
+          if (filtered.length && !eventId) setEventId(filtered[0].id);
+        }
+        catch (e) {
+          console.error("Failed to load events:", e);
+        }
+      };
+      loadEvents();  
+    }, []);
+  /* ----------------- Load notifications ----------------- */
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -59,10 +65,37 @@ const NotificationsPage = () => {
         if (alive) setLoading(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+
+    return () => { alive = false; };
+  }, [user.email, user.role]);
+
+  /* ----------------- Send notification ----------------- */
+  const handleSend = async (e) => {
+    e.preventDefault();
+
+    const evt = e.target.evt.value;
+    const subject = e.target.subject.value;
+    const body = e.target.body.value;
+
+    try {
+      await createNotification({
+        eventId: evt,
+        subject,
+        body,
+        userEmail: user.email,
+        audience: { roles: ["volunteer"] },
+        deleted: false,
+      });
+
+      e.target.reset();
+      alert("Notification sent!");
+
+      const updated = await listNotifications(user.email, user.role);
+      setMessages(updated);
+    } catch (err) {
+      alert("Failed to send notification: " + err.message);
+    }
+  };
 
   return (
     <div className="notifications-container">
@@ -103,23 +136,18 @@ const NotificationsPage = () => {
           className="card admin-send-form"
         >
           <h3>Send a New Notification</h3>
-
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <label className="text-sm" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              Type:
-              <select
-                value={sendType}
-                onChange={(e) => setSendType(e.target.value)}
-                className="notification-input"
-                style={{ width: 180, margin: 0 }}
-              >
-                <option value="assignment">Assignment</option>
-                <option value="update">Update</option>
-                <option value="reminder">Reminder</option>
-              </select>
-            </label>
-          </div>
-
+          <select
+            name="evt"
+            className="notification-select"
+            value={eventId}
+            onChange={(e) => setEventId(e.target.value)}
+          >
+            {events.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} — {e.date}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             name="subject"
@@ -149,43 +177,18 @@ const NotificationsPage = () => {
 
         {!loading && !err && messages.length > 0 && (
           <ul className="messages-list">
-            {messages.map((m) => {
-              const isUnread = uid && !(m.readBy || []).includes(uid);
-              return (
-                <li key={m.id} className={`message-item ${isUnread ? "unread" : "read"}`}>
-                  <div className="msg-row">
-                    {isUnread && <span className="msg-dot" aria-label="unread" />}
-                    <div className={`msg-subject ${isUnread ? "msg-subject-unread" : ""}`}>{m.subject}</div>
-                  </div>
-
-                  <div className="msg-meta">
-                    {m.from ? <>From: {m.from} • </> : null}
-                    {m.to ? <>To: {m.to}</> : null}
-                  </div>
-
-                  <p className="msg-body">{m.body}</p>
-
-                  {uid && isUnread && (
-                    <button
-                      className="mark-read"
-                      onClick={async () => {
-                        try {
-                          await markNotificationRead(m.id);
-                          setMessages(prev =>
-                            prev.map(x => x.id === m.id ? { ...x, readBy: [...(x.readBy || []), uid] } : x)
-                          );
-                        } catch (e) {
-                          alert("Failed to mark as read: " + (e?.message || e));
-                        }
-                      }}
-                    >
-                      Mark as read
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-
+            {messages.map((m) => (
+              <li key={m.id}>
+                <div className="msg-subject">{m.subject || m.title}</div>
+                <div className="msg-meta">  
+                  {m.title != "New Event Assignment" ? 
+                    m.userEmail && <>From: Event Admin </>
+                  : null}
+                    {/* {m.audienceRoles?.length && <>To: {m.userEmail}</>} */}
+                </div>
+                <p>{m.body || m.message}</p>
+              </li>
+            ))}
           </ul>
         )}
       </section>

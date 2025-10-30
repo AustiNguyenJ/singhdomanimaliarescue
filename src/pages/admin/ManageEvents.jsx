@@ -11,7 +11,7 @@ import {
   getAssignedVolunteers,
 } from "../../firebase/firestore.js";
 
-import { SKILLS, URGENCY, TIME_OF_DAY } from "../../firebase/adminData.js";
+import { SKILLS, URGENCY, TIME_OF_DAY } from "../../assets/adminData.js";
 
 export default function ManageEvents() {
   const [events, setEvents] = useState([]);
@@ -37,7 +37,7 @@ export default function ManageEvents() {
       setEvents(filtered);
       // load counts for all events
       const counts = {};
-      for (const evt of evts || []) {
+      for (const evt of filtered || []) {
         const vols = evt.assignedVolunteers || [];
         counts[evt.id] = vols.length;
       }
@@ -100,7 +100,7 @@ export default function ManageEvents() {
     }
     const vols = await getAssignedVolunteers(eventId);
     setAssignedVols((prev) => ({ ...prev, [eventId]: vols }));
-    setAssignedCounts((prev) => ({ ...prev, [eventId]: vols.length }));
+    // setAssignedCounts((prev) => ({ ...prev, [eventId]: vols.length }));
     setOpenVolunteersFor(eventId);
   };
 
@@ -290,7 +290,7 @@ export default function ManageEvents() {
                               ) : (
                                 <ul className="vol-list">
                                   {assignedVols[evt.id].map(v => (
-                                    <li key={v.id}>{v.name}</li>
+                                    <li key={v.id}>{v.fullName} - {v.id}</li>
                                   ))}
                                 </ul>
                               )}

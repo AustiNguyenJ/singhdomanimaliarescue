@@ -39,20 +39,20 @@ function App() {
           <Route path="/get-involved" element={<GetInvolvedPage />} />
           <Route path="/events/new" element={<EventForm />} />
           
-          <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute allowedRoles={['volunteer']} />}>
             <Route path="/profile" element={<ProfilePage/> } />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/dashboard" element={<VolunteerDashboard />} />
             <Route path="/history" element={<HistoryPage />} />
           </Route>
 
-          {/* <Route element={<ProtectedRoute allowedRoles={['admin']} />}> */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/admin/notifications" element={<NotificationsPage />} />
             <Route path="/admin/events" element={<EventForm />} />
             <Route path="/admin/matching" element={<AdminMatchingForm />} />
             <Route path="/admin/events/manage" element={<ManageEvents />} />
             <Route path="/admin" element={<AdminDashboard />} />
-          {/* </Route> */}
+          </Route>
         </Routes>
         <Footer />
       </Router>

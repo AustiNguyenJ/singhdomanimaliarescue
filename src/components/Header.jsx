@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { getAuth, signOut } from 'firebase/auth';
 
 const Header = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
+    const storedUser = localStorage.getItem("currentUser"); 
+    setUser(storedUser ? JSON.parse(storedUser) : null);
+    
+  }, [location]);
 
   const handleSignOut = async () => {
     try {
@@ -37,10 +35,12 @@ const Header = () => {
           <Link to="/about">About</Link>
           <Link to="/get-involved">Get Involved</Link>
           <Link to="/contact">Contact</Link>
-          {user ? (
+          {user?.role === "volunteer" ? (
             <Link to="/dashboard">Dashboard</Link>
-          ): (<></>)         
-          }
+          ) : user?.role === "admin" ? (
+            <Link to="/admin">Admin Dashboard</Link>
+          ) : null}
+
         </div>
 
         {user ? (
