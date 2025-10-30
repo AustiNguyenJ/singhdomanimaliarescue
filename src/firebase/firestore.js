@@ -257,7 +257,7 @@ export const sendNotification = async (payload) => {
   return res.json();
 };
 
-  return assignedEvents;
+ // return assignedEvents;
 
 
 export { setDoc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, doc, collection };
