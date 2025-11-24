@@ -1,11 +1,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import ReportsCard from "../../components/ReportsCard.jsx";
 
 export default function AdminDashboard() {
   return (
     <div className="admin-dashboard">
       <h1>Admin Dashboard</h1>
-      <p className="subtitle">Manage events, volunteers, and notifications all in one place!</p>
+      <p className="subtitle">
+        Manage events, volunteers, and notifications all in one place!
+      </p>
+
       <div className="dashboard-grid">
         {/* Event Management */}
         <div className="dashboard-card">
@@ -13,8 +17,12 @@ export default function AdminDashboard() {
           <h2>Event Management</h2>
           <p>Create and manage upcoming events for volunteers.</p>
           <div className="btn-row">
-            <Link to="/admin/events" className="btn btn-primary">Create an Event</Link>
-            <Link to="/admin/events/manage" className="btn btn-secondary">Manage Events</Link>
+            <Link to="/admin/events" className="btn btn-primary">
+              Create an Event
+            </Link>
+            <Link to="/admin/events/manage" className="btn btn-secondary">
+              Manage Events
+            </Link>
           </div>
         </div>
 
@@ -23,15 +31,27 @@ export default function AdminDashboard() {
           <div className="icon" style={{ fontSize: 32, marginBottom: 12 }}>🧩</div>
           <h2>Volunteer Matching</h2>
           <p>Match volunteers to events based on their skills and availability.</p>
-          <Link to="/admin/matching" className="btn">Match Volunteers</Link>
+          <Link to="/admin/matching" className="btn">
+            Match Volunteers
+          </Link>
         </div>
 
-        {/* Notifications (stub for later) */}
+        {/* Notifications */}
         <div className="dashboard-card">
           <div className="icon" style={{ fontSize: 32, marginBottom: 12 }}>🔔</div>
           <h2>Notifications</h2>
           <p>Send and view messages between admins and volunteers.</p>
-          <Link to="/admin/notifications" className="btn">Open Inbox</Link>
+          <Link to="/admin/notifications" className="btn">
+            Open Inbox
+          </Link>
+        </div>
+
+        {/* Reports (TEST VERSION) */}
+        <div className="dashboard-card">
+          <div className="icon" style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
+          <h2>Reports</h2>
+          <p>Test PDF generation before building full reports.</p>
+          <ReportsCard />
         </div>
       </div>
     </div>
