@@ -191,6 +191,7 @@ export const listNotifications = async (userEmail, role = "volunteer") => {
   const q = query(
     collection(db, "notifications"),
     where("audienceRoles", "array-contains", role),
+    where("userEmail", "in", [userEmail, "anonymous"]),
     orderBy("createdAt", "desc")
   );
 
@@ -206,7 +207,7 @@ export const createNotification = async (payload) => {
   try {
     const notif = {
       ...payload,
-      userEmail: payload.userEmail || "anonymous",
+      userEmail: "anonymous",
       audienceRoles: payload.audience?.roles || ["volunteer"],
       deleted: payload.deleted || false,
       createdAt: serverTimestamp(),
