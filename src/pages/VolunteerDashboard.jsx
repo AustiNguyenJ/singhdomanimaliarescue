@@ -25,7 +25,7 @@ export default function VolunteerDashboard() {
                     <h2>Edit Profile</h2>
                     <p>Update your personal info and availability settings.</p>
                     <Link to="/profile" className="dashboard-btn">
-                        Edit Profile
+                        Complete / Edit Profile
                     </Link>
                 </div>
 
