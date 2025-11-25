@@ -1,39 +1,97 @@
-.history-container {
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+/* Volunteer Dashboard Container */
+.volunteer-dashboard {
+  max-width: 1200px;
+  min-height: 1vh;
+  margin: 2rem auto;
+  padding: 1rem 2rem;
+  font-family: "Inter", sans-serif;
+  color: #1f2937;
+}
+
+/* Header */
+.volunteer-dashboard h1 {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.volunteer-dashboard .subtitle {
+  text-align: center;
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+/* Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Dashboard Card */
+.dashboard-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon in Card */
+.dashboard-card .icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  display: inline-block;
+}
+
+/* Card Title */
+.dashboard-card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  color: #111827;
+}
+
+/* Card Description */
+.dashboard-card p {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+/* Card Button */
+.dashboard-card .dashboard-btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.dashboard-card .dashboard-btn:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+}
+
+/* Responsive tweaks */
+@media (max-width: 700px) {
+  .volunteer-dashboard {
+    padding: 1rem;
   }
-  
-  .history-title {
-    text-align: center;
-    color: #333;
-    margin-bottom: 1.5rem;
-    font-size: 1.8rem;
-    font-weight: 600;
+
+  .dashboard-card {
+    padding: 1rem;
   }
-  
-  .history-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .history-table th {
-    background: #2563eb;
-    color: #fff;
-    padding: 0.75rem;
-    text-align: left;
-    border-radius: 8px 8px 0 0;
-  }
-  
-  .history-table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .history-table tr:hover {
-    background: #f9fafb;
-  }
-  
+}

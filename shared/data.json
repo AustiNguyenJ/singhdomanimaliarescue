@@ -1,0 +1,24 @@
+{
+  "skills": ["Dog Walking","Cat Care","Small Animal Handling","Animal Grooming","Cleaning & Sanitation","First Aid","Customer Service","Teamwork"],
+  "events": [
+    {
+      "id": "evt-1",
+      "name": "Adoption Event - Midtown",
+      "description": "Help handle animals and meet adopters.",
+      "location": "123 Midtown Ave",
+      "requiredSkills": ["Dog Walking"],
+      "urgency": "Medium",
+      "date": "2025-10-12",
+      "capacity": 3,
+      "assignedVolunteerIds": []
+    }
+  ],
+  "volunteers": [
+    { "id": "vol001", "name": "Alex Kim", "skills": ["Dog Walking","First Aid"], "availability": ["sat","sun"] },
+    { "id": "vol002", "name": "Bree Garcia", "skills": ["Cleaning & Sanitation"], "availability": ["fri","sat"] }
+  ],
+  "history": [
+    { "id": 1, "volunteerId": "vol001", "date": "2025-08-21", "event": "Dog Grooming", "hours": 3 }
+  ],
+  "_historySeq": 2
+}

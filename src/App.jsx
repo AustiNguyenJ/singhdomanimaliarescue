@@ -13,8 +13,11 @@ import ManageEvents from "./pages/admin/ManageEvents";
 import VolunteerDashboard from "./pages/VolunteerDashboard";
 import HistoryPage from "./pages/HistoryPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import GetInvolvedPage from "./pages/GetInvolvedPage";
+import EventForm from "./components/EventForm";
 
 import { app } from "./firebase/config";
+import { getAuth } from "firebase/auth";
 import { AuthProvider } from "./context/AuthContext"; 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -33,21 +36,23 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <ProfilePage/>
-            </ProtectedRoute>
-           } />
-          <Route path="/dashboard" element={<VolunteerDashboard />} />
-          <Route path="/history" element={<HistoryPage />} />
           <Route path="/get-involved" element={<GetInvolvedPage />} />
           <Route path="/events/new" element={<EventForm />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/admin/notifications" element={<NotificationsPage />} />
-          <Route path="/admin/events" element={<EventForm />} />
-          <Route path="/admin/matching" element={<AdminMatchingForm />} />
-          <Route path="/admin/events/manage" element={<ManageEvents />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          
+          <Route element={<ProtectedRoute allowedRoles={['volunteer']} />}>
+            <Route path="/profile" element={<ProfilePage/> } />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/dashboard" element={<VolunteerDashboard />} />
+            <Route path="/history" element={<HistoryPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin/notifications" element={<NotificationsPage />} />
+            <Route path="/admin/events" element={<EventForm />} />
+            <Route path="/admin/matching" element={<AdminMatchingForm />} />
+            <Route path="/admin/events/manage" element={<ManageEvents />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
         </Routes>
         <Footer />
       </Router>

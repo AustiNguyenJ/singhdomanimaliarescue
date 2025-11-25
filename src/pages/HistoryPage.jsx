@@ -1,57 +1,67 @@
 import React, { useEffect, useState } from "react";
+import { getVolunteerEvents } from "../firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+
 const HistoryPage = () => {
-    const [history, setHistory] = useState([]);
-    const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetch(
-            "http://127.0.0.1:5001/singhdomanimaliarescue/us-central1/getVolunteerHistory"
-        )
-            .then((res) => res.json())
-            .then ((data) => {
-                setHistory(data.data || []);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Error fetching history:", err);
-                setLoading(false);
-            });
-    }, []);
+  useEffect(() => {
+    const auth = getAuth();
 
-    if (loading) {
-        return <p style={{ textAlign: "center" }}>Loading...</p>;
-    }
-    return (
-        <div className="history-root"> 
-            <h1 className="history-title">Your Volunteer History</h1>
-                <table className="history-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Event</th>
-                        <th>Hours</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {history.length > 0 ? (
-                        history.map((entry) => (
-                            <tr key={entry.id}>
-                                <td>{entry.date}</td>
-                                <td>{entry.event}</td>
-                                <td>{entry.hours}</td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="3" style={{ textAlign: "center", color: "#999" }}>
-                                No history found.
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
-    );
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const data = await getVolunteerEvents(user.email); 
+          console.log("Fetched volunteer events:", data);
+          setHistory(data);
+        } catch (err) {
+          console.error("Error fetching volunteer events:", err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        console.log("No user signed in");
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) return <p style={{ textAlign: "center" }}>Loading...</p>;
+
+  return (
+    <div className="vol-history-root">
+      <h1 className="vol-history-title">Your Volunteer History</h1>
+      <table className="vol-history-table">
+        <thead>
+          <tr>
+            <th className="vol-history-th">Event</th>
+            <th className="vol-history-th">Date</th>
+            <th className="vol-history-th">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {history.length > 0 ? (
+            history.map((entry, idx) => (
+              <tr key={entry.id} className={`vol-history-row ${idx % 2 === 0 ? "even" : "odd"}`}>
+                <td className="vol-history-td">{entry.name}</td>
+                <td className="vol-history-td">{entry.date}</td>
+                <td className="vol-history-td">{entry.timeOfDay}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="3" style={{ textAlign: "center", color: "#888", padding: "1.5rem" }}>
+                No history found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 };
 
 export default HistoryPage;
