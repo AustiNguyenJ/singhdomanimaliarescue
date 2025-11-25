@@ -1,12 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import ReportsCard from "../../components/ReportsCard.jsx";
 
 export default function AdminDashboard() {
   return (
     <div className="admin-dashboard">
       <h1>Admin Dashboard</h1>
-      <p className="subtitle">Manage events, volunteers, and notifications all in one place!</p>
+      <p className="subtitle">
+        Manage events, volunteers, and notifications all in one place!
+      </p>
+
       <div className="dashboard-grid">
+
         {/* Event Management */}
         <div className="dashboard-card">
           <div className="icon" style={{ fontSize: 32, marginBottom: 12 }}>📅</div>
@@ -26,13 +31,19 @@ export default function AdminDashboard() {
           <Link to="/admin/matching" className="btn">Match Volunteers</Link>
         </div>
 
-        {/* Notifications (stub for later) */}
+        {/* Notifications */}
         <div className="dashboard-card">
           <div className="icon" style={{ fontSize: 32, marginBottom: 12 }}>🔔</div>
           <h2>Notifications</h2>
           <p>Send and view messages between admins and volunteers.</p>
           <Link to="/admin/notifications" className="btn">Open Inbox</Link>
         </div>
+
+        {/* Reports */}
+        <div className="dashboard-card">
+          <ReportsCard />
+        </div>
+
       </div>
     </div>
   );
