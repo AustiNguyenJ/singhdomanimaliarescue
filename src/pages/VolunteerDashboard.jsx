@@ -14,7 +14,7 @@ export default function VolunteerDashboard() {
                 <div className="dashboard-card">
                     <div className="icon" style={{ fontSize: 32, marginBottom: 12 }}>📅</div>
                     <h2>Volunteer History</h2>
-                    <p>View all your past volunteering activities and logged hours.</p>
+                    <p>View all your upcoming and previous volunteering events.</p>
                     <Link to="/history" className="dashboard-btn">
                         View History
                     </Link>

@@ -620,36 +620,54 @@ body, html {
 
 .vol-history-root {
   min-height: 80vh;
+  padding: 2rem 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   background: #f9fafb;
-  padding: 2rem 1rem;
 }
 
+/* ===== PAGE TITLE ===== */
 .vol-history-title {
-  font-size: 2rem;
+  font-size: 2.25rem;
   color: #2563eb;
-  margin-bottom: 2rem;
-  font-weight: bold;
+  font-weight: 700;
+  margin-bottom: 2.5rem;
   text-align: center;
 }
 
-.vol-history-table {
+/* ===== SECTION WRAPPER ===== */
+.vol-section {
   width: 100%;
-  max-width: 900px;
-  border-collapse: collapse;
-  background: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 4px 16px rgba(60,130,246,0.1);
-  overflow: hidden;
+  max-width: 950px;
+  margin-bottom: 3rem;
 }
 
+/* ===== SECTION SUBTITLE ===== */
+.vol-history-subtitle {
+  font-size: 1.5rem;
+  color: #1e3a8a;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border-left: 5px solid #2563eb;
+  padding-left: 0.75rem;
+}
+
+/* ===== TABLE STYLING ===== */
+.vol-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(60, 130, 246, 0.12);
+}
+
+/* ===== TABLE HEADERS & CELLS ===== */
 .vol-history-th,
 .vol-history-td {
-  border: 1px solid #d1d5db;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
 }
 
@@ -657,10 +675,12 @@ body, html {
   background: #f1f5f9;
   color: #2563eb;
   font-weight: 600;
+  font-size: 1rem;
 }
 
+/* ===== ROW COLORS ===== */
 .vol-history-row:nth-child(even) {
-  background: #f3f4f6;
+  background: #f8fafc;
 }
 
 .vol-history-row:nth-child(odd) {
@@ -669,13 +689,43 @@ body, html {
 
 .vol-history-td {
   color: #1f2937;
+  font-size: 0.95rem;
 }
 
+/* ===== EMPTY STATE ===== */
+.vol-history-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* ===== LOADING TEXT ===== */
 .vol-history-loading {
   text-align: center;
-  padding: 2rem;
-  color: #888;
+  padding: 2rem 0;
+  color: #6b7280;
   font-size: 1.1rem;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .vol-history-title {
+    font-size: 1.75rem;
+  }
+
+  .vol-history-subtitle {
+    font-size: 1.25rem;
+  }
+
+  .vol-history-table {
+    font-size: 0.85rem;
+  }
+
+  .vol-history-th,
+  .vol-history-td {
+    padding: 0.6rem;
+  }
 }
 
 @media (max-width: 600px) {
